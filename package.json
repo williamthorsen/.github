@@ -1,0 +1,16 @@
+{
+  "name": "templates.github",
+  "version": "0.1.0",
+  "description": "Organization-wide workflows and default templates",
+  "keywords": [],
+  "license": "UNLICENSED",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.34"
+  },
+  "packageManager": "pnpm@10.12.4"
+}
