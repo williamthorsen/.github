@@ -1,4 +1,4 @@
-name: Code Quality Checks
+name: Code quality & build checks
 
 # This workflow runs code quality checks on push and pull request events
 # It uses pnpm run ci to run all checks, which includes:
@@ -28,7 +28,7 @@ on:
 
 jobs:
   code-quality:
-    name: Code Quality
+    name: Code quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -61,5 +61,5 @@ jobs:
           pnpm config set auto-install-peers false
           pnpm install
 
-      - name: Run code quality checks
+      - name: Run code quality & build checks
         run: pnpm run ci
