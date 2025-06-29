@@ -7,6 +7,9 @@
   "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
   "type": "module",
   "scripts": {
+    "check": "pnpm run fmt:check",
+    "fmt": "prettier --list-different --write .",
+    "fmt:check": "prettier --check .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
