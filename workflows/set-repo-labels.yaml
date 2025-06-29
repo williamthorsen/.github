@@ -1,0 +1,27 @@
+# https://github.com/marketplace/actions/github-labeler
+name: Set repo labels
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout consumer repo
+        uses: actions/checkout@v4
+
+      - name: Ensure labels.yaml exists
+        run: |
+          if [ ! -f ".github/labels.yaml" ]; then
+            echo "No .github/labels.yaml found — using default"
+            curl -sSL -o .github/labels.yaml https://raw.githubusercontent.com/williamthorsen/.github/main/config/repo-labels.yaml
+          fi
+
+      - name: Run Labeler
+        uses: crazy-max/ghaction-github-labeler@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          yaml-file: .github/labels.yaml
+          skip-delete: false
+          dry-run: false
