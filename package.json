@@ -10,7 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
-    "@types/node": "22.15.34"
+    "@types/node": "22.15.34",
+    "prettier": "3.6.2"
   },
   "packageManager": "pnpm@10.12.4"
 }
