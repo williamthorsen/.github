@@ -18,18 +18,23 @@
                 "with": {
                   "type": "object",
                   "properties": {
-                    "node-version": { "type": "string" },
-                    "pnpm-version": { "type": "string" }
+                    "node-version": {
+                      "type": "string",
+                      "description": "Optional. Node.js version. Uses the workflow's default if not provided."
+                    },
+                    "pnpm-version": {
+                      "type": "string",
+                      "description": "Optional. pnpm version. Uses the workflow's default if not provided."
+                    }
                   },
-                  "required": ["node-version", "pnpm-version"],
                   "additionalProperties": false
                 }
               },
-              "required": ["uses", "with"]
+              "required": ["uses"]
             }
           }
         }
       }
     }
   ]
-} 
+}
