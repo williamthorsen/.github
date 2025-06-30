@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Code quality & build checks
 
 # This workflow runs code quality checks on push and pull request events
@@ -16,11 +17,11 @@ on:
   workflow_call:
     inputs:
       node-version:
-        required: true
         type: string
+        default: '22.14.0'
       pnpm-version:
-        required: true
         type: string
+        default: '10.12.4'
     secrets:
       # Allows a consumer to add this token to the environment, typically for use in `.npmrc`
       GH_PACKAGES_TOKEN:
