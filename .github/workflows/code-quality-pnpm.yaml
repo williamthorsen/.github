@@ -58,9 +58,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: |
-          pnpm config set auto-install-peers false
-          pnpm install
+        run: pnpm install
 
       - name: Run code quality & build checks
         run: pnpm run ci
