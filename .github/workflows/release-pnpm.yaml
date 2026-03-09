@@ -1,0 +1,136 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Release
+
+# Reusable release workflow for pnpm projects using @williamthorsen/release-kit.
+#
+# Supports both single-package repos and monorepos:
+# - Single-package: creates a tag like `v1.2.3`
+# - Monorepo: pass `monorepo: true` to create per-component tags like `my-lib-v1.2.3`
+#
+# Usage (single-package):
+#   jobs:
+#     release:
+#       uses: williamthorsen/.github/.github/workflows/release-pnpm.yaml@v1
+#       with:
+#         node-version: '24'
+#         pnpm-version: '10.30.3'
+#
+# Usage (monorepo):
+#   jobs:
+#     release:
+#       uses: williamthorsen/.github/.github/workflows/release-pnpm.yaml@v1
+#       with:
+#         node-version: '24'
+#         pnpm-version: '10.30.3'
+#         monorepo: true
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        type: string
+        default: '24'
+      pnpm-version:
+        type: string
+        default: '10.30.3'
+      monorepo:
+        description: 'Set to true for monorepo per-component tagging'
+        type: boolean
+        default: false
+      only:
+        description: 'Components to release (comma-separated, monorepo only)'
+        type: string
+        default: ''
+      bump:
+        description: 'Override version bump type'
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ inputs.pnpm-version }}
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run release preparation
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.only }}" ]; then
+            ARGS="$ARGS --only=${{ inputs.only }}"
+          fi
+          if [ -n "${{ inputs.bump }}" ]; then
+            ARGS="$ARGS --bump=${{ inputs.bump }}"
+          fi
+          pnpm run release:prepare $ARGS
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No release-worthy changes found."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine tags (single-package)
+        if: steps.check.outputs.changed == 'true' && inputs.monorepo == false
+        id: single-tags
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "tags=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Releasing: v${VERSION}"
+
+      - name: Determine tags (monorepo)
+        if: steps.check.outputs.changed == 'true' && inputs.monorepo == true
+        id: mono-tags
+        run: |
+          TAGS=""
+          for pkg in $(git diff --name-only -- 'packages/*/package.json'); do
+            DIR=$(echo "$pkg" | cut -d/ -f2)
+            VERSION=$(node -p "require('./$pkg').version")
+            TAGS="$TAGS ${DIR}-v${VERSION}"
+          done
+          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+          echo "Releasing:$TAGS"
+
+      - name: Commit, tag, and push
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          TAGS="${{ steps.single-tags.outputs.tags }}${{ steps.mono-tags.outputs.tags }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "release: ${TAGS}"
+
+          for TAG in $TAGS; do
+            git tag "$TAG"
+          done
+
+          git push origin main $TAGS
