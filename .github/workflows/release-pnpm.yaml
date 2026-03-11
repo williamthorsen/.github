@@ -3,26 +3,18 @@ name: Release
 
 # Reusable release workflow for pnpm projects using @williamthorsen/release-kit.
 #
-# Supports both single-package repos and monorepos:
-# - Single-package: creates a tag like `v1.2.3`
-# - Monorepo: pass `monorepo: true` to create per-component tags like `my-lib-v1.2.3`
+# Runs `npx @williamthorsen/release-kit prepare` to bump versions and generate
+# changelogs. The CLI writes computed tag names to `/tmp/release-kit/.release-tags`.
+# This workflow reads that file instead of deriving tags independently,
+# so `tagPrefix` in the release config is the single source of truth.
 #
-# Usage (single-package):
+# Usage:
 #   jobs:
 #     release:
-#       uses: williamthorsen/.github/.github/workflows/release-pnpm.yaml@v1
+#       uses: williamthorsen/.github/.github/workflows/release-pnpm.yaml@v2
 #       with:
 #         node-version: '24'
 #         pnpm-version: '10.30.3'
-#
-# Usage (monorepo):
-#   jobs:
-#     release:
-#       uses: williamthorsen/.github/.github/workflows/release-pnpm.yaml@v1
-#       with:
-#         node-version: '24'
-#         pnpm-version: '10.30.3'
-#         monorepo: true
 
 on:
   workflow_call:
@@ -33,10 +25,10 @@ on:
       pnpm-version:
         type: string
         default: '10.30.3'
-      monorepo:
-        description: 'Set to true for monorepo per-component tagging'
-        type: boolean
-        default: false
+      prepare-command:
+        description: 'Command to run for release preparation (override for repos that need custom logic)'
+        type: string
+        default: 'npx @williamthorsen/release-kit prepare'
       only:
         description: 'Components to release (comma-separated, monorepo only)'
         type: string
@@ -90,7 +82,7 @@ jobs:
           if [ -n "${{ inputs.bump }}" ]; then
             ARGS="$ARGS --bump=${{ inputs.bump }}"
           fi
-          pnpm run release:prepare $ARGS
+          ${{ inputs.prepare-command }} $ARGS
 
       - name: Check for changes
         id: check
@@ -102,31 +94,23 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Determine tags (single-package)
-        if: steps.check.outputs.changed == 'true' && inputs.monorepo == false
-        id: single-tags
+      - name: Determine tags
+        if: steps.check.outputs.changed == 'true'
+        id: tags
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "tags=v${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Releasing: v${VERSION}"
-
-      - name: Determine tags (monorepo)
-        if: steps.check.outputs.changed == 'true' && inputs.monorepo == true
-        id: mono-tags
-        run: |
-          TAGS=""
-          for pkg in $(git diff --name-only -- 'packages/*/package.json'); do
-            DIR=$(echo "$pkg" | cut -d/ -f2)
-            VERSION=$(node -p "require('./$pkg').version")
-            TAGS="$TAGS ${DIR}-v${VERSION}"
-          done
+          TAGS_FILE="/tmp/release-kit/.release-tags"
+          if [ ! -f "$TAGS_FILE" ]; then
+            echo "Error: $TAGS_FILE not found" >&2
+            exit 1
+          fi
+          TAGS=$(tr '\n' ' ' < "$TAGS_FILE" | xargs)
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
-          echo "Releasing:$TAGS"
+          echo "Releasing: $TAGS"
 
       - name: Commit, tag, and push
         if: steps.check.outputs.changed == 'true'
         run: |
-          TAGS="${{ steps.single-tags.outputs.tags }}${{ steps.mono-tags.outputs.tags }}"
+          TAGS="${{ steps.tags.outputs.tags }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
