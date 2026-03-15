@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Sync labels
+
+on:
+  workflow_call: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out consumer repo
+        uses: actions/checkout@v5
+
+      - name: Fetch common labels
+        run: |
+          curl --silent --show-error --location --fail \
+            -o /tmp/common-labels.yaml \
+            https://raw.githubusercontent.com/williamthorsen/.github/main/.github/config/labels.yaml
+
+      - name: Merge label configs
+        run: |
+          python3 << 'SCRIPT'
+          import sys
+          import yaml
+
+          with open("/tmp/common-labels.yaml") as f:
+              common = yaml.safe_load(f)
+
+          local_path = ".github/config/labels.yaml"
+          try:
+              with open(local_path) as f:
+                  local = yaml.safe_load(f) or []
+          except FileNotFoundError:
+              local = []
+
+          if local:
+              common_names = {label["name"] for label in common}
+              local_names = {label["name"] for label in local}
+              conflicts = sorted(common_names & local_names)
+              if conflicts:
+                  print(f"::error::Label name collision between common and repo-specific configs: {', '.join(conflicts)}")
+                  sys.exit(1)
+
+          merged = common + local
+
+          with open("/tmp/merged-labels.yaml", "w") as f:
+              yaml.dump(merged, f, default_flow_style=False)
+          SCRIPT
+
+      - name: Sync labels
+        uses: EndBug/label-sync@v2
+        with:
+          config-file: /tmp/merged-labels.yaml
+          delete-other-labels: true
+          token: ${{ secrets.GITHUB_TOKEN }}
