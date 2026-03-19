@@ -1,3 +1,6 @@
+# Agents
+.agents/*.branch-manifest.json
+
 # Editor directories and files
 .idea/
 *.suo
