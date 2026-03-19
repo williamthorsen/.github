@@ -22,10 +22,6 @@ on:
       pnpm-version:
         type: string
         default: '10.12.4'
-    secrets:
-      # Allows a consumer to add this token to the environment, typically for use in `.npmrc`
-      GH_PACKAGES_TOKEN:
-        required: false
 
 jobs:
   code-quality:
@@ -38,7 +34,6 @@ jobs:
       cancel-in-progress: true
 
     env:
-      GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
