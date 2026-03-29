@@ -1,27 +1,22 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Code quality & build checks
 
-# This workflow runs code quality checks on push and pull request events
-# It uses pnpm run ci to run all checks, which includes:
-# - Type checking
-# - Formatting checks
-# - Linting
-# - Tests with coverage
-# - Security audits
-# - Building all packages in the monorepo
-#
-# Note: This workflow will be automatically skipped if the commit message includes
-# any of the following strings: [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
+# Reusable workflow for code quality and build checks in pnpm projects.
+# Consumers must provide a check-command input specifying the command to run.
 
 on:
   workflow_call:
     inputs:
+      check-command:
+        type: string
+        required: true
+        description: Command to run code quality and build checks (e.g., "pnpm run ci", "nmr ci")
       node-version:
         type: string
-        default: '22.14.0'
+        default: '24.14.1'
       pnpm-version:
         type: string
-        default: '10.12.4'
+        default: '10.33.0'
 
 jobs:
   code-quality:
@@ -56,4 +51,4 @@ jobs:
         run: pnpm install
 
       - name: Run code quality & build checks
-        run: pnpm run ci
+        run: ${{ inputs.check-command }}
