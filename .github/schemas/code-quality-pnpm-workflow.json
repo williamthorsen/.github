@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Workflow calling code-quality-pnpm reusable workflow",
+  "title": "Workflow calling code-quality-pnpm-workflow reusable workflow",
   "allOf": [
     { "$ref": "https://json.schemastore.org/github-workflow.json" },
     {
@@ -13,11 +13,15 @@
               "properties": {
                 "uses": {
                   "type": "string",
-                  "pattern": ".*/code-quality-pnpm.yaml@.*"
+                  "pattern": ".*/code-quality-pnpm-workflow.yaml@.*"
                 },
                 "with": {
                   "type": "object",
                   "properties": {
+                    "check-command": {
+                      "type": "string",
+                      "description": "Required. Command to run code quality and build checks."
+                    },
                     "node-version": {
                       "type": "string",
                       "description": "Optional. Node.js version. Uses the workflow's default if not provided."
@@ -27,10 +31,11 @@
                       "description": "Optional. pnpm version. Uses the workflow's default if not provided."
                     }
                   },
+                  "required": ["check-command"],
                   "additionalProperties": false
                 }
               },
-              "required": ["uses"]
+              "required": ["uses", "with"]
             }
           }
         }
