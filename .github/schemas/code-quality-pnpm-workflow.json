@@ -25,10 +25,6 @@
                     "node-version": {
                       "type": "string",
                       "description": "Optional. Node.js version. Uses the workflow's default if not provided."
-                    },
-                    "pnpm-version": {
-                      "type": "string",
-                      "description": "Optional. pnpm version. Uses the workflow's default if not provided."
                     }
                   },
                   "required": ["check-command"],
