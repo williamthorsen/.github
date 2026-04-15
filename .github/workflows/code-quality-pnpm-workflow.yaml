@@ -45,5 +45,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Bootstrap
+        run: pnpm run --if-present bootstrap
+
       - name: Run code quality & build checks
         run: ${{ inputs.check-command }}
