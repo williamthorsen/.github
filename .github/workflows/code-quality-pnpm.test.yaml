@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Test code-quality-pnpm-workflow
+
+# Self-test for the reusable code-quality workflow.
+# Verifies that the setup-command input installs a tool that the check-command then uses.
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/code-quality-pnpm-workflow.yaml'
+      - '.github/workflows/code-quality-pnpm.test.yaml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/code-quality-pnpm-workflow.yaml'
+      - '.github/workflows/code-quality-pnpm.test.yaml'
+  workflow_dispatch:
+
+jobs:
+  setup-command-installs-ripgrep:
+    name: setup-command installs ripgrep
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      setup-command: 'sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep'
+      check-command: 'rg --version'
+
+  default-path-no-setup-command:
+    name: default path (no setup-command) succeeds
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      check-command: 'true'

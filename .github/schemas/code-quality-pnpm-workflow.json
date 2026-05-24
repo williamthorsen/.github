@@ -25,6 +25,10 @@
                     "node-version": {
                       "type": "string",
                       "description": "Optional. Node.js version. Uses the workflow's default if not provided."
+                    },
+                    "setup-command": {
+                      "type": "string",
+                      "description": "Optional. Shell command to run after dependency installation and bootstrap, before the check command. Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update)."
                     }
                   },
                   "required": ["check-command"],
