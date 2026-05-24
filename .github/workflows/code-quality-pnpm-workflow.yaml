@@ -14,6 +14,14 @@ on:
       node-version:
         type: string
         default: '24.14.1'
+      setup-command:
+        type: string
+        required: false
+        default: ''
+        description: |
+          Optional shell command to run after dependency installation and bootstrap, before the check command.
+          Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags,
+          and any necessary index updates (e.g., apt-get update).
 
 jobs:
   code-quality:
@@ -47,6 +55,12 @@ jobs:
 
       - name: Bootstrap
         run: pnpm run --if-present bootstrap
+
+      - name: Run setup command
+        if: inputs.setup-command != ''
+        env:
+          SETUP_COMMAND: ${{ inputs.setup-command }}
+        run: bash -eo pipefail -c "$SETUP_COMMAND"
 
       - name: Run code quality & build checks
         run: ${{ inputs.check-command }}
