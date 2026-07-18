@@ -58,6 +58,7 @@ Run checks across a Node-version matrix:
 jobs:
   code-quality:
     strategy:
+      fail-fast: false
       matrix:
         node-version: ['22.13.0', '24.14.1']
     uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v6
@@ -66,7 +67,7 @@ jobs:
       check-command: 'pnpm run ci'
 ```
 
-Every leg runs to completion — the workflow declares no concurrency of its own, so matrix legs never cancel each other. Nothing beyond the matrix itself is required.
+The workflow declares no concurrency of its own, so the matrix fans out with nothing beyond the matrix itself required. `fail-fast: false` is recommended for a compatibility matrix: without it, the first leg to fail cancels the others, so you would see only one failing Node version instead of every affected one.
 
 #### Concurrency
 
