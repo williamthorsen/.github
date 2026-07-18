@@ -29,9 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
+    # Concurrency is intentionally caller-owned: declare it at the caller's workflow level
+    # (see README). A job-level group here is shared across a caller's matrix legs and
+    # cancels them — see issue #15.
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

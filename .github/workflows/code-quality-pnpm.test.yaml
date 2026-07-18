@@ -2,7 +2,11 @@
 name: Test code-quality-pnpm-workflow
 
 # Self-test for the reusable code-quality workflow.
-# Verifies that the setup-command input installs a tool that the check-command then uses.
+# Verifies that the setup-command input installs a tool that the check-command then uses,
+# and that a caller-side Node-version matrix runs every leg to completion (see issue #15).
+#
+# Concurrency is declared here at the workflow level — the pattern consumers should follow
+# now that the reusable workflow no longer manages it.
 
 on:
   pull_request:
@@ -15,6 +19,10 @@ on:
       - '.github/workflows/code-quality-pnpm-workflow.yaml'
       - '.github/workflows/code-quality-pnpm.test.yaml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   setup-command-installs-ripgrep:
@@ -29,3 +37,13 @@ jobs:
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       check-command: 'true'
+
+  matrix-runs-all-legs:
+    name: matrix runs all legs (node ${{ matrix.node-version }})
+    strategy:
+      matrix:
+        node-version: ['22.13.0', '24.14.1']
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      node-version: ${{ matrix.node-version }}
+      check-command: 'node --version'
