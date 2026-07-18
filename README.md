@@ -23,7 +23,7 @@ Minimal caller:
 ```yaml
 jobs:
   code-quality:
-    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v5
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v6
     with:
       check-command: 'pnpm run ci'
 ```
@@ -33,7 +33,7 @@ Install an apt package before running checks (e.g., `ripgrep`):
 ```yaml
 jobs:
   code-quality:
-    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v5
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v6
     with:
       check-command: 'pnpm run ci'
       setup-command: 'sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep'
@@ -44,10 +44,48 @@ Install a tool via vendor script (e.g., `shellspec`):
 ```yaml
 jobs:
   code-quality:
-    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v5
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v6
     with:
       check-command: 'pnpm run ci'
       setup-command: 'curl -fsSL https://raw.githubusercontent.com/shellspec/shellspec/master/install.sh | sh -s -- --yes'
 ```
 
 The `setup-command` runs after dependencies are installed and the optional `bootstrap` script, and before `check-command`. The workflow does not run `apt-get update` or supply `sudo` on the consumer's behalf — include those in the command when needed.
+
+Run checks across a Node-version matrix:
+
+```yaml
+jobs:
+  code-quality:
+    strategy:
+      matrix:
+        node-version: ['22.13.0', '24.14.1']
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v6
+    with:
+      node-version: ${{ matrix.node-version }}
+      check-command: 'pnpm run ci'
+```
+
+Every leg runs to completion — the workflow declares no concurrency of its own, so matrix legs never cancel each other. Nothing beyond the matrix itself is required.
+
+#### Concurrency
+
+This workflow does not manage concurrency; that is the caller's responsibility. To cancel superseded runs (for example, when you push a new commit while checks from the previous one are still running), declare a **workflow-level** `concurrency` block in your caller — at the top of the workflow file, not inside the job that calls this workflow:
+
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-quality:
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v6
+    with:
+      check-command: 'pnpm run ci'
+```
+
+Workflow-level concurrency cancels a superseded _run_ while leaving the current run's matrix legs intact, so it composes correctly with the matrix example above. A job-level group placed inside a matrixed caller would instead be shared across the legs and cancel them.
+
+#### Migrating from v5 to v6
+
+`v6` removes the built-in job-level `concurrency` group that earlier versions declared. If you relied on it to auto-cancel superseded runs, add the workflow-level `concurrency` block shown above to your caller. Callers that matrix over Node versions (or any other axis) no longer need a workaround — every leg now runs.
