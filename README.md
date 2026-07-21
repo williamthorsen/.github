@@ -78,10 +78,11 @@ By default the workflow reads the Node version from your repository's `.tool-ver
 
 Precedence follows `actions/setup-node`: an explicit `node-version` wins over the file, which is what makes the compatibility matrix above work. Point `node-version-file` elsewhere to read a different file, such as `.nvmrc` or `package.json`.
 
-Two constraints on the file:
+Three constraints on the file, each failing differently:
 
 - It must exist. A repository with neither a `node-version` input nor the file fails with `The specified node version file at: ... does not exist`. Add `.tool-versions`, or pass `node-version` explicitly.
-- The `nodejs` entry must carry a single version and no trailing whitespace. `nodejs 24.18.0` resolves; `nodejs 24.18.0 22.13.0` does not. Entries for other tools on their own lines are ignored, so a multi-tool `.tool-versions` is fine.
+- It must declare a `nodejs` entry. A file present without one resolves to its own contents as the requested version, and the run fails with `Unable to find Node version '<contents>' for platform linux and architecture x64.` A polyglot `.tool-versions` kept for python or awscli alone lands here.
+- The `nodejs` entry must carry a single version and no trailing whitespace. `nodejs 24.18.0` resolves; `nodejs 24.18.0 22.13.0` does not, and fails the same way as a missing entry. Entries for other tools on their own lines are ignored, so a multi-tool `.tool-versions` is fine.
 
 #### Concurrency
 
@@ -109,7 +110,7 @@ Workflow-level concurrency cancels a superseded _run_ while leaving the current 
 
 `v7` takes the Node version from your repository's `.tool-versions` instead of a version restated in the workflow call. Two steps:
 
-1. Confirm `.tool-versions` declares a `nodejs` entry. Without one, and without an explicit `node-version`, the run fails with `The specified node version file at: ... does not exist`.
+1. Confirm `.tool-versions` exists and declares a `nodejs` entry. Both are required, and an absent file and a present file without the entry fail with different messages — see [Node version](#node-version) for both.
 2. Delete the `node-version` input from your caller.
 
 ```yaml
