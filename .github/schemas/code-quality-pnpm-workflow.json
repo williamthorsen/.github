@@ -24,7 +24,11 @@
                     },
                     "node-version": {
                       "type": "string",
-                      "description": "Optional. Node.js version. Uses the workflow's default if not provided."
+                      "description": "Optional. Explicit Node.js version, overriding node-version-file. Omit to use the version declared in this repository's .tool-versions."
+                    },
+                    "node-version-file": {
+                      "type": "string",
+                      "description": "Optional. Path to a file declaring the Node.js version, relative to the repository root. Defaults to .tool-versions. Ignored when node-version is provided."
                     },
                     "setup-command": {
                       "type": "string",
