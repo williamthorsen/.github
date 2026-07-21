@@ -3,7 +3,12 @@ name: Test code-quality-pnpm-workflow
 
 # Self-test for the reusable code-quality workflow.
 # Verifies that the setup-command input installs a tool that the check-command then uses,
-# and that a caller-side Node-version matrix runs every leg to completion (see issue #15).
+# that a caller-side Node-version matrix runs every leg to completion (see issue #15),
+# and that the Node version resolves from .tool-versions unless node-version overrides it or
+# node-version-file names another path.
+#
+# The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
+# supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
 #
 # Concurrency is declared here at the workflow level — the pattern consumers should follow
 # now that the reusable workflow no longer manages it.
@@ -11,13 +16,17 @@ name: Test code-quality-pnpm-workflow
 on:
   pull_request:
     paths:
+      - '.github/fixtures/**'
       - '.github/workflows/code-quality-pnpm-workflow.yaml'
       - '.github/workflows/code-quality-pnpm.test.yaml'
+      - '.tool-versions'
   push:
     branches: [main]
     paths:
+      - '.github/fixtures/**'
       - '.github/workflows/code-quality-pnpm-workflow.yaml'
       - '.github/workflows/code-quality-pnpm.test.yaml'
+      - '.tool-versions'
   workflow_dispatch:
 
 concurrency:
@@ -42,8 +51,34 @@ jobs:
     name: matrix runs all legs (node ${{ matrix.node-version }})
     strategy:
       matrix:
-        node-version: ['22.13.0', '24.14.1']
+        node-version: ['22.13.0', '24.18.0']
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       node-version: ${{ matrix.node-version }}
       check-command: 'node --version'
+
+  # The expected version is read from .tool-versions at run time. Hardcoding it here would
+  # restate the version in a second place, which is the defect this workflow input removes.
+  default-reads-tool-versions:
+    name: default resolves Node from .tool-versions
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      check-command: >-
+        test "$(node --version)" = "v$(sed -n 's/^nodejs //p' .tool-versions)"
+
+  # Exercises precedence against the default file, which this repository has.
+  node-version-overrides-file:
+    name: node-version overrides .tool-versions
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      node-version: '22.13.0'
+      check-command: 'test "$(node --version)" = "v22.13.0"'
+
+  # The fixture declares a version .tool-versions does not, so this passes only if the input
+  # reaches setup-node. A node-version-file hardcoded to the default would fail here.
+  node-version-file-reads-given-path:
+    name: node-version-file reads the path it is given
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      node-version-file: '.github/fixtures/.node-version'
+      check-command: 'test "$(node --version)" = "v22.13.0"'
