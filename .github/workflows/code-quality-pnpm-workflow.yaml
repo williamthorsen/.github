@@ -13,7 +13,18 @@ on:
         description: Command to run code quality and build checks (e.g., "pnpm run ci", "nmr ci")
       node-version:
         type: string
-        default: '24.14.1'
+        required: false
+        default: ''
+        description: |
+          Explicit Node.js version. Overrides node-version-file. Leave unset to use the version
+          declared in the calling repository's .tool-versions.
+      node-version-file:
+        type: string
+        required: false
+        default: '.tool-versions'
+        description: |
+          Path to a file declaring the Node.js version, relative to the repository root.
+          Ignored when node-version is supplied.
       setup-command:
         type: string
         required: false
@@ -44,10 +55,15 @@ jobs:
       - name: Enable corepack
         run: corepack enable
 
+      # An explicit node-version overrides the file, matching actions/setup-node's own precedence.
+      # The file is blanked in that case so setup-node does not warn about conflicting inputs.
+      # Keep '' as the last operand: GitHub expressions return operand values, so a falsy middle
+      # operand falls through and the precedence silently inverts.
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version == '' && inputs.node-version-file || '' }}
           cache: 'pnpm'
 
       - name: Install dependencies
