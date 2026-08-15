@@ -40,16 +40,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # Concurrency is intentionally caller-owned: declare it at the caller's workflow level
-    # (see README). A job-level group here is shared across a caller's matrix legs and
-    # cancels them — see issue #15.
+    # Concurrency is caller-owned: declare it at the caller's workflow level (see README).
+    # A job-level group here is shared across a caller's matrix legs and cancels them.
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # pnpm version is governed by each consumer's `packageManager` field in package.json.
       - name: Enable corepack
@@ -60,7 +59,7 @@ jobs:
       # Keep '' as the last operand: GitHub expressions return operand values, so a falsy middle
       # operand falls through and the precedence silently inverts.
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.node-version }}
           node-version-file: ${{ inputs.node-version == '' && inputs.node-version-file || '' }}

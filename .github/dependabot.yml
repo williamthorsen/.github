@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://json.schemastore.org/dependabot-2.0.json
+version: 2
+
+updates:
+  # Rotates the action pins in .github/workflows, restoring the upgrade channel a pinned major closes.
+  # Grouped so a run costs one review rather than one per action.
+  - package-ecosystem: github-actions
+    directory: /
+    # Naming labels explicitly stops dependabot applying its `dependencies` default, which this repo does not declare.
+    labels:
+      - tooling
+      - 'scope:workflows'
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - '*'
