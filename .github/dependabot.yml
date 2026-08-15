@@ -3,7 +3,7 @@ version: 2
 
 updates:
   # Rotates the action pins in .github/workflows, restoring the upgrade channel a pinned major closes.
-  # Every bump is grouped into one pull request per run; the cadence is one review a month rather than one per action.
+  # Grouped so a run costs one review rather than one per action.
   - package-ecosystem: github-actions
     directory: /
     # Naming labels explicitly stops dependabot applying its `dependencies` default, which this repo does not declare.
