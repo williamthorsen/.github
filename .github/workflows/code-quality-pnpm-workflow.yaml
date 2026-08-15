@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # pnpm version is governed by each consumer's `packageManager` field in package.json.
       - name: Enable corepack
@@ -60,7 +60,7 @@ jobs:
       # Keep '' as the last operand: GitHub expressions return operand values, so a falsy middle
       # operand falls through and the precedence silently inverts.
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.node-version }}
           node-version-file: ${{ inputs.node-version == '' && inputs.node-version-file || '' }}
