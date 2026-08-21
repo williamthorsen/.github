@@ -81,7 +81,7 @@ jobs:
           SHELLSPEC_VERSION: ${{ inputs.shellspec-version }}
         run: |
           installer="$RUNNER_TEMP/shellspec-install.sh"
-          curl -fsSL -o "$installer" \
+          curl --fail --silent --show-error --location --retry 3 --output "$installer" \
             "https://raw.githubusercontent.com/shellspec/shellspec/$SHELLSPEC_VERSION/install.sh"
           # --yes is required: the installer's confirm prompt reads /dev/tty, which a step has none of.
           sh "$installer" "$SHELLSPEC_VERSION" --yes
