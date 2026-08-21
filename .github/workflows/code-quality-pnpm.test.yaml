@@ -86,8 +86,9 @@ jobs:
       node-version-file: '.github/fixtures/.node-version'
       check-command: 'test "$(node --version)" = "v22.13.0"'
 
-  # A bare `shellspec` resolves only through the $GITHUB_PATH entry the install step writes,
-  # so this asserts the version and the PATH wiring together.
+  # Asserts the installed release is the requested one and that `shellspec` resolves for the check
+  # command. $HOME/.local/bin is on the hosted runner's default PATH, so this does not cover the
+  # install step's $GITHUB_PATH entry.
   shellspec-version-installs-requested-version:
     name: shellspec-version installs the requested version
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
