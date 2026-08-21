@@ -1,6 +1,6 @@
 # .github
 
-Consumers pin the reusable workflows by major tag (`@v7`). A tag moves forward as non-breaking changes land, so a section grows after its tag is first cut; a breaking change opens the next tag instead.
+Consumers pin the reusable workflows by major tag (`@v7`). A tag moves forward as non-breaking changes land, so a section grows after its tag is first cut; a breaking change opens the next tag instead. Entries marked 🚨 break consumers moving to that tag.
 
 ## v7
 
@@ -11,7 +11,7 @@ Consumers pin the reusable workflows by major tag (`@v7`). A tag moves forward a
 
 ### Removed
 
-- Removed the `sync-labels` workflow and its `labels.yaml` config.
+- 🚨 Removed the `sync-labels` workflow and its `labels.yaml` config. It declared `on: workflow_call`, so a caller pinned to it has no replacement and must drop the job.
 
 ### Dependencies
 
