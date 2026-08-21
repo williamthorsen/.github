@@ -16,6 +16,7 @@ Runs code quality and build checks for pnpm-based projects on `ubuntu-latest`.
 | `node-version`      | `string` | no       | `''`             | Explicit Node.js version. Overrides `node-version-file`. Omit to use the version your repository already declares.                                                                                                                                                |
 | `node-version-file` | `string` | no       | `.tool-versions` | Path to a file declaring the Node.js version, relative to the repository root. Ignored when `node-version` is supplied.                                                                                                                                           |
 | `setup-command`     | `string` | no       | `''`             | Optional shell command to run after dependency installation and bootstrap, before the check command. Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update). |
+| `shellspec-version` | `string` | no       | `''`             | Shellspec release to install before the checks run (e.g., `0.28.1`). Omit to install nothing. The installer comes from the named release's own tag.                                                                                                               |
 
 #### Usage
 
@@ -42,7 +43,9 @@ jobs:
       setup-command: 'sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep'
 ```
 
-Install a tool via vendor script (e.g., `shellspec`):
+The `setup-command` runs after dependencies are installed and the optional `bootstrap` script, and before `check-command`. The workflow does not run `apt-get update` or supply `sudo` on the consumer's behalf — include those in the command when needed.
+
+Run shell tests (e.g., `shellspec`):
 
 ```yaml
 jobs:
@@ -50,10 +53,8 @@ jobs:
     uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v7
     with:
       check-command: 'pnpm run ci'
-      setup-command: 'curl -fsSL https://raw.githubusercontent.com/shellspec/shellspec/master/install.sh | sh -s -- --yes'
+      shellspec-version: '0.28.1'
 ```
-
-The `setup-command` runs after dependencies are installed and the optional `bootstrap` script, and before `check-command`. The workflow does not run `apt-get update` or supply `sudo` on the consumer's behalf — include those in the command when needed.
 
 Run checks across a Node-version matrix:
 
@@ -83,6 +84,14 @@ Three constraints on the file, each failing differently:
 - It must exist. A repository with neither a `node-version` input nor the file fails with `The specified node version file at: ... does not exist`. Add `.tool-versions`, or pass `node-version` explicitly.
 - It must declare a `nodejs` entry. A file present without one resolves to its own contents as the requested version, and the run fails with `Unable to find Node version '<contents>' for platform linux and architecture x64.` A polyglot `.tool-versions` kept for python or awscli alone lands here.
 - The `nodejs` entry must carry a single version and no trailing whitespace. `nodejs 24.18.0` resolves; `nodejs 24.18.0 22.13.0` does not, and fails the same way as a missing entry. Entries for other tools on their own lines are ignored, so a multi-tool `.tool-versions` is fine.
+
+#### Shell tests
+
+`shellspec` is not in Ubuntu's apt repositories, and it runs the shell tests rather than being a subject of them, so the workflow provisions it the way it provisions Node and pnpm. Set `shellspec-version` to the release you want and `shellspec` is on `PATH` for the check command; leave it unset and no installer is fetched at all.
+
+The input takes a concrete release, not a `latest` token. Every other version this workflow touches is pinned, and a floating one would let a shellspec release change your gate with no commit in either repository to explain it. Naming the release also fixes where the installer comes from: that release's own tag, so no moving branch reaches the shell.
+
+Tools the code under test consumes, such as `rg` or `jq`, are a different kind of dependency and stay in `setup-command`.
 
 #### Concurrency
 
@@ -125,3 +134,20 @@ jobs:
 Any test that guards against the two copies diverging (for example one built on `checkNodeVersionConsistency`) has nothing left to compare and can be deleted with it.
 
 Keep `node-version` only where you mean to override the file, such as a compatibility matrix. It still takes precedence when supplied, so a matrixed caller needs no change beyond the tag.
+
+#### Migrating from a hand-rolled shellspec install
+
+Before this input existed, callers installed shellspec themselves through `setup-command`. Delete that entry and set `shellspec-version` instead:
+
+```yaml
+jobs:
+  code-quality:
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v7
+    with:
+      check-command: 'pnpm run ci'
+      shellspec-version: '0.28.1'
+```
+
+Delete it rather than leaving it alongside the input. The installer defaults to the same prefix this workflow installs into, and it aborts when its installation directory already exists, so a caller that sets both fails the run.
+
+The input is additive, so `v7` carries it without a tag bump.
