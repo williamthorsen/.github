@@ -4,11 +4,14 @@ name: Test code-quality-pnpm-workflow
 # Self-test for the reusable code-quality workflow.
 # Verifies that the setup-command input installs a tool that the check-command then uses,
 # that a caller-side Node-version matrix runs every leg to completion,
-# and that the Node version resolves from .tool-versions unless node-version overrides it or
-# node-version-file names another path.
+# that the Node version resolves from .tool-versions unless node-version overrides it or
+# node-version-file names another path,
+# and that shellspec-version installs shellspec for the check command only when it is set.
 #
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
 # supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
+# The same limitation leaves the clash between shellspec-version and a hand-rolled installer in
+# setup-command uncovered; the README's migration note carries it instead.
 #
 # Concurrency is declared here at the workflow level — the pattern consumers should follow
 # now that the reusable workflow no longer manages it.
@@ -82,3 +85,19 @@ jobs:
     with:
       node-version-file: '.github/fixtures/.node-version'
       check-command: 'test "$(node --version)" = "v22.13.0"'
+
+  # Asserts the installed release is the requested one and that `shellspec` resolves for the check
+  # command. $HOME/.local/bin is on the hosted runner's default PATH, so this does not cover the
+  # install step's $GITHUB_PATH entry.
+  shellspec-version-installs-requested-version:
+    name: shellspec-version installs the requested version
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      shellspec-version: '0.28.1'
+      check-command: 'test "$(shellspec --version)" = "0.28.1"'
+
+  omitted-shellspec-version-installs-nothing:
+    name: omitted shellspec-version installs nothing
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      check-command: '! command -v shellspec'

@@ -33,6 +33,13 @@ on:
           Optional shell command to run after dependency installation and bootstrap, before the check command.
           Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags,
           and any necessary index updates (e.g., apt-get update).
+      shellspec-version:
+        type: string
+        required: false
+        default: ''
+        description: |
+          Shellspec release to install before the checks run (e.g. "0.28.1"). Leave unset to install
+          nothing. The installer comes from the named release's own tag.
 
 jobs:
   code-quality:
@@ -64,6 +71,23 @@ jobs:
           node-version: ${{ inputs.node-version }}
           node-version-file: ${{ inputs.node-version == '' && inputs.node-version-file || '' }}
           cache: 'pnpm'
+
+      # shellspec is not in apt. Fetching install.sh from the named release's own tag keeps the
+      # installer and the code it installs one reviewed snapshot, and leaves no shellspec version
+      # pinned here. The installer's default prefix is $HOME/.local, so no sudo is needed.
+      - name: Install shellspec
+        if: inputs.shellspec-version != ''
+        env:
+          SHELLSPEC_VERSION: ${{ inputs.shellspec-version }}
+        run: |
+          installer="$RUNNER_TEMP/shellspec-install.sh"
+          curl --fail --silent --show-error --location --retry 3 --output "$installer" \
+            "https://raw.githubusercontent.com/shellspec/shellspec/$SHELLSPEC_VERSION/install.sh"
+          # --yes is required: the installer's confirm prompt reads /dev/tty, which a step has none of.
+          sh "$installer" "$SHELLSPEC_VERSION" --yes
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          # $GITHUB_PATH takes effect in later steps, so verify through the absolute path.
+          "$HOME/.local/bin/shellspec" --version
 
       - name: Install dependencies
         run: pnpm install

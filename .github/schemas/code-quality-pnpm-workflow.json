@@ -33,6 +33,10 @@
                     "setup-command": {
                       "type": "string",
                       "description": "Optional. Shell command to run after dependency installation and bootstrap, before the check command. Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update)."
+                    },
+                    "shellspec-version": {
+                      "type": "string",
+                      "description": "Optional. Shellspec release to install before the checks run (e.g. 0.28.1). Omit to install nothing. The installer comes from the named release's own tag."
                     }
                   },
                   "required": ["check-command"],
