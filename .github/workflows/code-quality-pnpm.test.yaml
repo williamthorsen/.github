@@ -13,8 +13,8 @@ name: Test code-quality-pnpm-workflow
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
 # supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
 # The same limitation leaves the clash between shellspec-version and a hand-rolled installer in
-# setup-command uncovered; the README's migration note carries it instead, and it leaves uncovered
-# a run that fails on an actionlint error.
+# setup-command uncovered; the README's migration note carries it instead. The same limitation
+# leaves uncovered a run that fails on an actionlint error.
 #
 # Concurrency is declared here at the workflow level — the pattern consumers should follow
 # now that the reusable workflow no longer manages it.
