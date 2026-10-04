@@ -6,12 +6,15 @@ name: Test code-quality-pnpm-workflow
 # that a caller-side Node-version matrix runs every leg to completion,
 # that the Node version resolves from .tool-versions unless node-version overrides it or
 # node-version-file names another path,
-# and that shellspec-version installs shellspec for the check command only when it is set.
+# that shellspec-version installs shellspec for the check command only when it is set,
+# and that lint-workflows: false skips the actionlint step. Every other job lints this repository's
+# own workflows with the step on.
 #
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
 # supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
 # The same limitation leaves the clash between shellspec-version and a hand-rolled installer in
-# setup-command uncovered; the README's migration note carries it instead.
+# setup-command uncovered; the README's migration note carries it instead, and it leaves uncovered
+# a run that fails on an actionlint error.
 #
 # Concurrency is declared here at the workflow level — the pattern consumers should follow
 # now that the reusable workflow no longer manages it.
@@ -48,7 +51,7 @@ jobs:
     name: default path (no setup-command) succeeds
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
-      check-command: 'true'
+      check-command: ':'
 
   matrix-runs-all-legs:
     name: matrix runs all legs (node ${{ matrix.node-version }})
@@ -101,3 +104,24 @@ jobs:
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       check-command: '! command -v shellspec'
+
+  # setup-command writes a workflow that actionlint rejects (runner context in a job-level env), so
+  # this passes only if the lint step is skipped. GitHub evaluates an expression opener anywhere in a
+  # with: value, so the shell joins the adjacent quoted strings '$' and '{{ runner.temp }}' instead.
+  lint-workflows-false-skips-lint:
+    name: lint-workflows false skips the lint step
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      lint-workflows: false
+      setup-command: >-
+        printf '%s\n'
+        'on: push'
+        'jobs:'
+        '  build:'
+        '    runs-on: ubuntu-latest'
+        '    env:'
+        '      CACHE_DIR: ''$''{{ runner.temp }}'
+        '    steps:'
+        '      - run: echo "$CACHE_DIR"'
+        > .github/workflows/broken.yaml
+      check-command: ':'
