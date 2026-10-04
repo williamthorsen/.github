@@ -22,6 +22,10 @@
                       "type": "string",
                       "description": "Required. Command to run code quality and build checks."
                     },
+                    "lint-workflows": {
+                      "type": "boolean",
+                      "description": "Optional. Lint this repository's .github/workflows with actionlint, including shellcheck on run: scripts. Defaults to true. A .github/actionlint.yaml configures the checks."
+                    },
                     "node-version": {
                       "type": "string",
                       "description": "Optional. Explicit Node.js version, overriding node-version-file. Omit to use the version declared in this repository's .tool-versions."

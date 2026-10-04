@@ -1,6 +1,12 @@
 # .github
 
-Consumers pin the reusable workflows by major tag (`@v7`). A tag moves forward as non-breaking changes land, so a section grows after its tag is first cut; a breaking change opens the next tag instead. Entries marked 🚨 break consumers moving to that tag.
+Consumers pin the reusable workflows by major tag (`@v8`). A tag moves forward as non-breaking changes land, so a section grows after its tag is first cut; a breaking change opens the next tag instead. Entries marked 🚨 break consumers moving to that tag.
+
+## v8
+
+### Features
+
+- 🚨 Added actionlint to the `code-quality-pnpm` workflow, linting the caller's `.github/workflows` on every run; the `lint-workflows` input turns it off. See [Migrating from v7 to v8](README.md#migrating-from-v7-to-v8).
 
 ## v7
 
