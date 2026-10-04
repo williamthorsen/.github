@@ -11,6 +11,13 @@ on:
         type: string
         required: true
         description: Command to run code quality and build checks (e.g., "pnpm run ci", "nmr ci")
+      lint-workflows:
+        type: boolean
+        required: false
+        default: true
+        description: |
+          Lint the calling repository's .github/workflows with actionlint, including shellcheck on
+          run: scripts. The caller's .github/actionlint.yaml, if present, configures the checks.
       node-version:
         type: string
         required: false
@@ -103,3 +110,16 @@ jobs:
 
       - name: Run code quality & build checks
         run: ${{ inputs.check-command }}
+
+      # Runs after a failed check too, so one run reports both results. Dependabot does not rotate
+      # ACTIONLINT_VERSION; bump it by hand. The installer comes from that release's own tag.
+      - name: Lint workflows
+        if: ${{ !cancelled() && inputs.lint-workflows }}
+        env:
+          ACTIONLINT_VERSION: '1.7.12'
+        run: |
+          installer="$RUNNER_TEMP/download-actionlint.bash"
+          curl --fail --silent --show-error --location --retry 3 --output "$installer" \
+            "https://raw.githubusercontent.com/rhysd/actionlint/v$ACTIONLINT_VERSION/scripts/download-actionlint.bash"
+          bash "$installer" "$ACTIONLINT_VERSION" "$RUNNER_TEMP"
+          "$RUNNER_TEMP/actionlint" -color
