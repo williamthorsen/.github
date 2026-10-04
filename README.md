@@ -1,3 +1,5 @@
+<!-- readme-type: config -->
+
 # .github
 
 Organization-wide workflows and default templates.
@@ -10,13 +12,14 @@ Runs code quality and build checks for pnpm-based projects on `ubuntu-latest`.
 
 #### Inputs
 
-| Name                | Type     | Required | Default          | Description                                                                                                                                                                                                                                                       |
-| ------------------- | -------- | -------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `check-command`     | `string` | yes      | —                | Command to run code quality and build checks (e.g., `pnpm run ci`, `nmr ci`).                                                                                                                                                                                     |
-| `node-version`      | `string` | no       | `''`             | Explicit Node.js version. Overrides `node-version-file`. Omit to use the version your repository already declares.                                                                                                                                                |
-| `node-version-file` | `string` | no       | `.tool-versions` | Path to a file declaring the Node.js version, relative to the repository root. Ignored when `node-version` is supplied.                                                                                                                                           |
-| `setup-command`     | `string` | no       | `''`             | Optional shell command to run after dependency installation and bootstrap, before the check command. Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update). |
-| `shellspec-version` | `string` | no       | `''`             | Shellspec release to install before the checks run (e.g., `0.28.1`). Omit to install nothing. The installer comes from the named release's own tag.                                                                                                               |
+| Name                | Type      | Required | Default          | Description                                                                                                                                                                                                                                                       |
+| ------------------- | --------- | -------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `check-command`     | `string`  | yes      | —                | Command to run code quality and build checks (e.g., `pnpm run ci`, `nmr ci`).                                                                                                                                                                                     |
+| `lint-workflows`    | `boolean` | no       | `true`           | Lint the repository's `.github/workflows` with actionlint. Set to `false` to skip the step. See [Workflow linting](#workflow-linting).                                                                                                                            |
+| `node-version`      | `string`  | no       | `''`             | Explicit Node.js version. Overrides `node-version-file`. Omit to use the version your repository already declares.                                                                                                                                                |
+| `node-version-file` | `string`  | no       | `.tool-versions` | Path to a file declaring the Node.js version, relative to the repository root. Ignored when `node-version` is supplied.                                                                                                                                           |
+| `setup-command`     | `string`  | no       | `''`             | Optional shell command to run after dependency installation and bootstrap, before the check command. Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update). |
+| `shellspec-version` | `string`  | no       | `''`             | Shellspec release to install before the checks run (e.g., `0.28.1`). Omit to install nothing. The installer comes from the named release's own tag.                                                                                                               |
 
 #### Usage
 
@@ -25,7 +28,7 @@ Minimal caller:
 ```yaml
 jobs:
   code-quality:
-    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v7
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
     with:
       check-command: 'pnpm run ci'
 ```
@@ -37,7 +40,7 @@ Install an apt package before running checks (e.g., `ripgrep`):
 ```yaml
 jobs:
   code-quality:
-    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v7
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
     with:
       check-command: 'pnpm run ci'
       setup-command: 'sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep'
@@ -50,7 +53,7 @@ Run shell tests (e.g., `shellspec`):
 ```yaml
 jobs:
   code-quality:
-    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v7
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
     with:
       check-command: 'pnpm run ci'
       shellspec-version: '0.28.1'
@@ -65,7 +68,7 @@ jobs:
       fail-fast: false
       matrix:
         node-version: ['22.13.0', '24.18.0']
-    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v7
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
     with:
       node-version: ${{ matrix.node-version }}
       check-command: 'pnpm run ci'
@@ -93,6 +96,12 @@ The input takes a concrete release, not a `latest` token. Every other version th
 
 Tools the code under test consumes, such as `rg` or `jq`, are a different kind of dependency and stay in `setup-command`.
 
+#### Workflow linting
+
+After the check command, the workflow runs [actionlint](https://github.com/rhysd/actionlint) over the calling repository's `.github/workflows`, so a workflow that GitHub would reject fails the pull request rather than its first run after merge. A `${{ runner.temp }}` in a job-level `env:`, for example, is accepted by YAML but rejected by GitHub. The step runs even when the check command fails, so one run reports both results.
+
+actionlint runs with its default checks, which include shellcheck on `run:` scripts. To configure them, such as declaring self-hosted runner labels or ignoring a finding by pattern, add a [`.github/actionlint.yaml`](https://github.com/rhysd/actionlint/blob/main/docs/config.md) to the calling repository, which actionlint reads from there. To skip the step entirely, set `lint-workflows: false`.
+
 #### Concurrency
 
 This workflow does not manage concurrency; that is the caller's responsibility. To cancel superseded runs (for example, when you push a new commit while checks from the previous one are still running), declare a **workflow-level** `concurrency` block in your caller — at the top of the workflow file, not inside the job that calls this workflow:
@@ -104,7 +113,7 @@ concurrency:
 
 jobs:
   code-quality:
-    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v7
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
     with:
       check-command: 'pnpm run ci'
 ```
@@ -151,3 +160,16 @@ jobs:
 Delete it rather than leaving it alongside the input. The installer defaults to the same prefix this workflow installs into, and it aborts when its installation directory already exists, so a caller that sets both fails the run.
 
 The input is additive, so `v7` carries it without a tag bump.
+
+#### Migrating from v7 to v8
+
+`v8` lints the caller's workflows with actionlint on every run, so a caller whose workflows already contain an error starts failing. Before moving the tag, run actionlint in the calling repository (`brew install actionlint`, then `actionlint` from the repository root) and fix what it reports, or configure the checks as described in [Workflow linting](#workflow-linting). To keep `v7` behavior instead, set `lint-workflows: false`:
+
+```yaml
+jobs:
+  code-quality:
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
+    with:
+      check-command: 'pnpm run ci'
+      lint-workflows: false
+```
