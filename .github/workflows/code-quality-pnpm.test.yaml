@@ -7,14 +7,16 @@ name: Test code-quality-pnpm-workflow
 # that the Node version resolves from .tool-versions unless node-version overrides it or
 # node-version-file names another path,
 # that shellspec-version installs shellspec for the check command only when it is set,
-# and that lint-workflows: false skips the actionlint step. Every other job lints this repository's
-# own workflows with the step on.
+# that lint-workflows: false skips the actionlint step, that check-commands runs one job per entry
+# under the entry's name with actionlint in one leg only, and that a check-command caller's job keeps
+# the name "Code quality". Every other job lints this repository's own workflows with the step on.
 #
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
 # supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
 # The same limitation leaves the clash between shellspec-version and a hand-rolled installer in
 # setup-command uncovered; the README's migration note carries it instead. The same limitation
-# leaves uncovered a run that fails on an actionlint error.
+# leaves uncovered a run that fails on an actionlint error, the input validation's failures, and
+# fail-fast: false keeping a failing leg from cancelling the others.
 #
 # Concurrency is declared here at the workflow level — the pattern consumers should follow
 # now that the reusable workflow no longer manages it.
@@ -125,3 +127,49 @@ jobs:
         '      - run: echo "$CACHE_DIR"'
         > .github/workflows/broken.yaml
       check-command: ':'
+
+  # The JSON uses the README's documented form, so the self-test exercises the copyable example.
+  # The second command chains several steps, as a leg replacing a composite script does.
+  check-commands-fans-out:
+    name: check-commands fans out
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      check-commands: >-
+        [
+          { "name": "first", "command": "test -f package.json" },
+          { "name": "second", "command": "node --version && test -f .tool-versions && :" }
+        ]
+
+  # Reads the names GitHub recorded, which callers' branch protection matches against. Reading by
+  # attempt keeps a re-run from passing on the previous attempt's jobs.
+  check-names-follow-entries:
+    name: check names follow entries
+    needs: [check-commands-fans-out, default-path-no-setup-command]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Assert job names and a single lint leg
+        run: |
+          jobs="$RUNNER_TEMP/jobs.json"
+          gh api --paginate --jq '.jobs[]' \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs" \
+            > "$jobs"
+          for name in \
+            'check-commands fans out / first' \
+            'check-commands fans out / second' \
+            'default path (no setup-command) succeeds / Code quality'; do
+            if ! jq --exit-status --arg name "$name" 'select(.name == $name)' "$jobs" > /dev/null; then
+              echo "::error::Missing job: $name"
+              exit 1
+            fi
+          done
+          lint=$(jq --raw-output \
+            'select(.name | startswith("check-commands fans out / ")) | .steps[] | select(.name == "Lint workflows") | .conclusion' \
+            "$jobs" | sort | paste -sd, -)
+          if [ "$lint" != 'skipped,success' ]; then
+            echo "::error::Lint workflows conclusions across the legs: $lint"
+            exit 1
+          fi

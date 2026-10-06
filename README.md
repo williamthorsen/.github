@@ -14,7 +14,8 @@ Runs code quality and build checks for pnpm-based projects on `ubuntu-latest`.
 
 | Name                | Type      | Required | Default          | Description                                                                                                                                                                                                                                                       |
 | ------------------- | --------- | -------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `check-command`     | `string`  | yes      | —                | Command to run code quality and build checks (e.g., `pnpm run ci`, `nmr ci`).                                                                                                                                                                                     |
+| `check-command`     | `string`  | no       | `''`             | Command to run code quality and build checks in one job named `Code quality` (e.g., `pnpm run ci`, `nmr ci`). Pass this or `check-commands`, not both.                                                                                                            |
+| `check-commands`    | `string`  | no       | `''`             | JSON array of `{ "name": ..., "command": ... }` entries, each run as its own job on its own runner. Pass this or `check-command`, not both. See [Fanning checks out across runners](#fanning-checks-out-across-runners).                                          |
 | `lint-workflows`    | `boolean` | no       | `true`           | Lint the repository's `.github/workflows` with actionlint. Set to `false` to skip the step. See [Workflow linting](#workflow-linting).                                                                                                                            |
 | `node-version`      | `string`  | no       | `''`             | Explicit Node.js version. Overrides `node-version-file`. Omit to use the version your repository already declares.                                                                                                                                                |
 | `node-version-file` | `string`  | no       | `.tool-versions` | Path to a file declaring the Node.js version, relative to the repository root. Ignored when `node-version` is supplied.                                                                                                                                           |
@@ -76,6 +77,34 @@ jobs:
 
 The workflow declares no concurrency of its own, so the matrix fans out with nothing beyond the matrix itself required. `fail-fast: false` is recommended for a compatibility matrix: without it, the first leg to fail cancels the others, so you would see only one failing Node version instead of every affected one.
 
+Fan checks out across runners (see [Fanning checks out across runners](#fanning-checks-out-across-runners)):
+
+```yaml
+jobs:
+  code-quality:
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
+    with:
+      check-commands: >-
+        [
+          { "name": "test", "command": "nmr test" },
+          { "name": "lint", "command": "nmr lint" },
+          { "name": "static", "command": "nmr typecheck && nmr fmt:check && pnpm run check:strict:post" }
+        ]
+```
+
+#### Fanning checks out across runners
+
+`check-commands` runs each entry as its own job, on its own runner, so the checks run in parallel instead of one after another. The workflow builds the matrix, so the caller lists the legs and nothing more. The input is a JSON string because reusable-workflow inputs are scalars; it takes at least one entry, and each entry needs a non-empty `name` and `command`.
+
+- Each leg is a separate check named after its entry (`code-quality / test`, `code-quality / lint`, ...), so branch protection names each leg instead of `Code quality`.
+- `fail-fast` is off: a failing leg does not cancel the others, so one run reports every failing check.
+- Every leg checks out, installs, bootstraps, and runs `setup-command` on its own. A leg whose command needs a build output includes the build in its command.
+- A command that splits a composite script into legs no longer fires that script's nmr `:post` hook. Name the hook's step in the leg that replaces it, as the `static` leg above does with `pnpm run check:strict:post`.
+- actionlint runs in one leg only, since every leg would lint the same files.
+- An invalid or non-array `check-commands` fails with GitHub's own expression error before any leg starts.
+
+With `check-command` instead, the workflow runs one job named `Code quality`, as it always has.
+
 #### Node version
 
 By default the workflow reads the Node version from your repository's `.tool-versions`, the same file your local toolchain uses. Declaring the version once is the point: there is no second copy in the workflow call to drift from it, and no consistency test needed to catch the drift.
@@ -118,7 +147,7 @@ jobs:
       check-command: 'pnpm run ci'
 ```
 
-Workflow-level concurrency cancels a superseded _run_ while leaving the current run's matrix legs intact, so it composes correctly with the matrix example above. A job-level group placed inside a matrixed caller would instead be shared across the legs and cancel them.
+Workflow-level concurrency cancels a superseded _run_ while leaving the current run's matrix legs intact, so it composes correctly with the matrix example above and with the legs of `check-commands`. A job-level group placed inside a matrixed caller would instead be shared across the legs and cancel them.
 
 #### Migrating from v5 to v6
 

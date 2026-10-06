@@ -2,15 +2,26 @@
 name: Code quality & build checks
 
 # Reusable workflow for code quality and build checks in pnpm projects.
-# Consumers must provide a check-command input specifying the command to run.
+# Consumers pass exactly one of check-command (one job) or check-commands (one job per entry).
 
 on:
   workflow_call:
     inputs:
       check-command:
         type: string
-        required: true
-        description: Command to run code quality and build checks (e.g., "pnpm run ci", "nmr ci")
+        required: false
+        default: ''
+        description: |
+          Command to run code quality and build checks in a single job named "Code quality"
+          (e.g., "pnpm run ci", "nmr ci"). Pass this or check-commands, not both.
+      check-commands:
+        type: string
+        required: false
+        default: ''
+        description: |
+          JSON array of {"name": ..., "command": ...} entries. Each entry runs as its own job, named
+          after the entry, on its own runner. A composite split into legs no longer fires its nmr
+          :post hook, so the leg that replaces it names that step. Pass this or check-command, not both.
       lint-workflows:
         type: boolean
         required: false
@@ -50,17 +61,45 @@ on:
 
 jobs:
   code-quality:
-    name: Code quality
+    # A name that references matrix keeps GitHub from appending the matrix values, so a
+    # check-command caller's check stays "Code quality", which branch protection names.
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.check-commands || '[{"name":"Code quality"}]') }}
+
     # Concurrency is caller-owned: declare it at the caller's workflow level (see README).
-    # A job-level group here is shared across a caller's matrix legs and cancels them.
+    # A job-level group here is shared across the legs and cancels them.
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
+      - name: Validate inputs
+        env:
+          CHECK_COMMAND: ${{ inputs.check-command }}
+          CHECK_COMMANDS: ${{ inputs.check-commands }}
+          LEG_COMMAND: ${{ matrix.command }}
+          LEG_NAME: ${{ matrix.name }}
+        run: |
+          if [ -n "$CHECK_COMMAND" ] && [ -n "$CHECK_COMMANDS" ]; then
+            echo "::error::Pass check-command or check-commands, not both."
+            exit 1
+          fi
+          if [ -z "$CHECK_COMMAND" ] && [ -z "$CHECK_COMMANDS" ]; then
+            echo "::error::Pass check-command or check-commands."
+            exit 1
+          fi
+          # An entry without a command would otherwise fall through to the empty check-command.
+          if [ -n "$CHECK_COMMANDS" ] && { [ -z "$LEG_NAME" ] || [ -z "$LEG_COMMAND" ]; }; then
+            echo "::error::Every check-commands entry needs a non-empty name and command."
+            exit 1
+          fi
+
       - name: Check out repository
         uses: actions/checkout@v7
 
@@ -109,12 +148,13 @@ jobs:
         run: bash -eo pipefail -c "$SETUP_COMMAND"
 
       - name: Run code quality & build checks
-        run: ${{ inputs.check-command }}
+        run: ${{ matrix.command || inputs.check-command }}
 
-      # Runs after a failed check too, so one run reports both results. Dependabot does not rotate
-      # ACTIONLINT_VERSION; bump it by hand. The installer comes from that release's own tag.
+      # Runs after a failed check too, so one run reports both results, and in the first leg only,
+      # since every leg would lint the same files. Dependabot does not rotate ACTIONLINT_VERSION;
+      # bump it by hand. The installer comes from that release's own tag.
       - name: Lint workflows
-        if: ${{ !cancelled() && inputs.lint-workflows }}
+        if: ${{ !cancelled() && inputs.lint-workflows && strategy.job-index == 0 }}
         env:
           ACTIONLINT_VERSION: '1.7.12'
         run: |

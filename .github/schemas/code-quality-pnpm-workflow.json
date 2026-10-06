@@ -20,7 +20,11 @@
                   "properties": {
                     "check-command": {
                       "type": "string",
-                      "description": "Required. Command to run code quality and build checks."
+                      "description": "Command to run code quality and build checks in one job named Code quality. Pass this or check-commands, not both."
+                    },
+                    "check-commands": {
+                      "type": "string",
+                      "description": "JSON array of { \"name\": ..., \"command\": ... } entries, each run as its own job on its own runner. Pass this or check-command, not both."
                     },
                     "lint-workflows": {
                       "type": "boolean",
@@ -43,7 +47,7 @@
                       "description": "Optional. Shellspec release to install before the checks run (e.g. 0.28.1). Omit to install nothing. The installer comes from the named release's own tag."
                     }
                   },
-                  "required": ["check-command"],
+                  "oneOf": [{ "required": ["check-command"] }, { "required": ["check-commands"] }],
                   "additionalProperties": false
                 }
               },
