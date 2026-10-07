@@ -92,6 +92,18 @@ jobs:
         ]
 ```
 
+#### Checking a caller
+
+This repository publishes a [readyup](https://www.npmjs.com/package/readyup) kit that checks a caller against the workflow's current major: whether it pins that major, and whether it has made the changes that each major requires. Each failing check prints its fix, which links to a migration guide when one covers the change.
+
+```shell
+pnpm dlx readyup run --from github:williamthorsen/.github
+```
+
+A repository that already has readyup installed runs `rdy run --from github:williamthorsen/.github`.
+
+The kit reads `.github/workflows/code-quality.yaml`, so a caller under another filename fails its first check. It runs from this repository's `main`, so it checks against the latest major. [Releasing](docs/releasing.md) describes how the kit follows each new major.
+
 #### Fanning checks out across runners
 
 `check-commands` runs each entry as its own job, on its own runner, so the checks run in parallel instead of one after another. The workflow builds the matrix, so the caller lists the legs and nothing more. The input is a JSON string because reusable-workflow inputs are scalars; it takes at least one entry, and each entry needs a non-empty `name` and `command`.
