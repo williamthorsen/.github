@@ -107,7 +107,7 @@ jobs:
       - run: pnpm exec nmr check
 `;
 
-describe('pinnedWorkflowMajor', () => {
+describe(pinnedWorkflowMajor, () => {
   it('reads the pinned major, so a repo behind the target is flagged to bump', () => {
     expect(pinnedWorkflowMajor(V5_CALLER)).toBe(5);
     expect(pinnedWorkflowMajor(V6_CALLER_WITHOUT_CONCURRENCY)).toBe(6);
@@ -128,7 +128,7 @@ describe('pinnedWorkflowMajor', () => {
   });
 });
 
-describe('workflowHasWorkflowLevelConcurrency', () => {
+describe(workflowHasWorkflowLevelConcurrency, () => {
   it('is false when no concurrency block is declared, so a v6 consumer is flagged to add one', () => {
     expect(workflowHasWorkflowLevelConcurrency(V6_CALLER_WITHOUT_CONCURRENCY)).toBe(false);
   });
@@ -142,7 +142,7 @@ describe('workflowHasWorkflowLevelConcurrency', () => {
   });
 });
 
-describe('pinMeetsFloor', () => {
+describe(pinMeetsFloor, () => {
   it('is true only at or above the floor, so a v6 repo keeps the v6 requirements and not the v7 ones', () => {
     expect(pinMeetsFloor(6, 6)).toBe(true);
     expect(pinMeetsFloor(6, 7)).toBe(false);
@@ -161,7 +161,7 @@ describe('pinMeetsFloor', () => {
   });
 });
 
-describe('callerDeclaresNodeVersionInput', () => {
+describe(callerDeclaresNodeVersionInput, () => {
   it('is true for a leftover node-version input, which @v7 supersedes', () => {
     expect(callerDeclaresNodeVersionInput(V6_CALLER_WITHOUT_CONCURRENCY)).toBe(true);
   });

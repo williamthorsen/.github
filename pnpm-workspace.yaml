@@ -1,0 +1,19 @@
+allowBuilds:
+  esbuild: true
+  lefthook: true
+  # Ships a prebuilt binding per platform as an optional dependency; the postinstall builds from
+  # source only when no binding exists, so it never needs to run here.
+  unrs-resolver: false
+
+# Keep pnpm 11's 24h minimumReleaseAge soak (supply-chain protection), set explicitly to pin
+# the policy, but exclude first-party packages so that a freshly published version is
+# consumable downstream without waiting out the soak.
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - '@williamthorsen/*'
+  - codeassembly
+  - codeassembly-lifecycle
+  - readyup
+  - v11y-check
+
+savePrefix: ''
