@@ -1,1 +1,3 @@
+.readyup/kits/*.js
+.readyup/manifest.json
 pnpm-lock.yaml

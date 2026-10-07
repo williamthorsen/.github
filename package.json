@@ -7,14 +7,24 @@
   "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
   "type": "module",
   "scripts": {
-    "check": "pnpm run fmt:check",
+    "check": "pnpm run fmt:check && pnpm run typecheck && pnpm run test && rdy verify --rebuild",
     "fmt": "prettier --list-different --write .",
     "fmt:check": "prettier --check .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "typecheck": "tsc"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
-    "prettier": "3.9.5"
+    "esbuild": "0.28.2",
+    "prettier": "3.9.5",
+    "readyup": "0.39.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
   },
-  "packageManager": "pnpm@10.34.5"
+  "packageManager": "pnpm@10.34.5",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
 }
