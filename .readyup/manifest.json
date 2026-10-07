@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "kits": [
+    {
+      "checklists": [
+        "code-quality"
+      ],
+      "esbuildVersion": "0.28.2",
+      "inputs": [
+        {
+          "hash": "8ea0b47c",
+          "kind": "module",
+          "path": "kits/default.ts"
+        }
+      ],
+      "name": "default",
+      "path": "kits/default.js",
+      "readyupVersion": "0.39.0",
+      "source": "kits/default.ts",
+      "sourceHash": "8ea0b47c",
+      "targetHash": "147c8248"
+    }
+  ]
+}
