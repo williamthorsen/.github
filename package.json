@@ -7,19 +7,16 @@
   "license": "UNLICENSED",
   "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
   "type": "module",
-  "scripts": {
-    "check": "pnpm run fmt:check && pnpm run typecheck && pnpm run test && rdy verify --rebuild",
-    "fmt": "prettier --list-different --write .",
-    "fmt:check": "prettier --check .",
-    "test": "vitest run",
-    "typecheck": "tsc"
-  },
   "devDependencies": {
     "@types/node": "24.13.3",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "@williamthorsen/nmr": "0.41.0",
+    "@williamthorsen/tsconfig": "0.10.0",
     "esbuild": "0.28.2",
     "prettier": "3.9.5",
     "readyup": "0.39.0",
     "typescript": "6.0.3",
+    "v11y-check": "0.19.0",
     "vitest": "4.1.11"
   },
   "packageManager": "pnpm@12.8.1",

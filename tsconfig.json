@@ -1,20 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@williamthorsen/tsconfig/tsconfig.base.json",
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "exactOptionalPropertyTypes": true,
-    "isolatedModules": true,
-    "lib": ["ES2025"],
-    "module": "NodeNext",
-    "moduleDetection": "force",
-    "noEmit": true,
-    "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2025",
     "types": ["node"],
   },
-  "include": [".config/**/*.ts", ".readyup/**/*.ts", "__tests__/"],
+  "include": [".config/**/*.ts", ".readyup/**/*.ts", "__tests__/", "*.ts"],
 }
