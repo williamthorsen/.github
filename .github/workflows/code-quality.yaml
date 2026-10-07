@@ -14,4 +14,4 @@ jobs:
   code-quality:
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
-      check-command: 'pnpm run check'
+      check-command: 'pnpm exec nmr ci'
