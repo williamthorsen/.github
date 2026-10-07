@@ -6,6 +6,10 @@
   "license": "UNLICENSED",
   "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
   "type": "module",
+  "scripts": {
+    "postinstall": "nmr report-overrides --quiet && codeassembly sync --warn-only",
+    "prepare": "lefthook check-install || lefthook install"
+  },
   "devDependencies": {
     "@types/node": "24.13.3",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
@@ -14,9 +18,11 @@
     "@williamthorsen/nmr": "0.41.0",
     "@williamthorsen/strict-lint": "14.1.0",
     "@williamthorsen/tsconfig": "0.10.0",
+    "codeassembly": "0.16.0",
     "esbuild": "0.28.2",
     "eslint": "10.11.0",
     "jiti": "2.7.0",
+    "lefthook": "2.1.14",
     "prettier": "3.9.5",
     "readyup": "0.39.0",
     "typescript": "6.0.3",
