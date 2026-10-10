@@ -9,9 +9,9 @@ name: Test code-quality-pnpm-workflow
 # that shellspec-version installs shellspec for the check command only when it is set,
 # that lint-workflows: false skips the actionlint step, that check-commands runs one job per entry
 # under the entry's name with actionlint in one leg only, that a check-command caller's job keeps
-# the name "Code quality", and that runs-on moves every job to the runner it names, as a bare label,
-# a JSON label, or a JSON array. Every other job lints this repository's own workflows with the step on, and runs
-# on the default runner.
+# the name "Code quality", and that runs-on moves every job to the runner it names, as a bare
+# label, a JSON label, or a JSON array. Every other job lints this repository's own workflows with
+# the step on, and runs on the default runner.
 #
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
 # supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
