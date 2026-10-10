@@ -116,13 +116,15 @@ jobs:
         uses: actions/checkout@v7
 
       # pnpm version is governed by each consumer's `packageManager` field in package.json. The pnpm
-      # binary is self-contained, so this step needs no Node.js on the runner, and it runs before
-      # setup-node, which leaves the runtime to that step.
+      # binary is self-contained, so this step needs no Node.js on the runner. node-version-file:
+      # false stops it from installing Node.js from a version file, leaving the runtime to
+      # setup-node.
       - name: Set up pnpm
         uses: pnpm/setup@v3
         with:
           cache: true
           install: false
+          node-version-file: false
 
       # An explicit node-version overrides the file, matching actions/setup-node's own precedence.
       # The file is blanked in that case so setup-node does not warn about conflicting inputs.
