@@ -43,6 +43,15 @@ on:
         description: |
           Path to a file declaring the Node.js version, relative to the repository root.
           Ignored when node-version is supplied.
+      runs-on:
+        type: string
+        required: false
+        default: ''
+        description: |
+          Runner for every job: a single label ("self-hosted"), a JSON array of labels
+          ('["self-hosted", "linux"]'), or a JSON runner-group object ('{"group": "ci"}').
+          Overrides the calling repository's CI_RUNS_ON variable, which takes the same forms.
+          Leave both unset to run on ubuntu-latest.
       setup-command:
         type: string
         required: false
@@ -64,7 +73,9 @@ jobs:
     # A name that references matrix keeps GitHub from appending the matrix values, so a
     # check-command caller's check stays "Code quality", which branch protection names.
     name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    # A value that opens with [ or { is JSON; any other is one label, which toJSON quotes so that
+    # fromJSON reads every form.
+    runs-on: ${{ fromJSON((startsWith(inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest', '[') || startsWith(inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest', '{')) && (inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest') || toJSON(inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest')) }}
     timeout-minutes: 15
 
     strategy:
