@@ -9,6 +9,7 @@ Consumers pin the reusable workflows by major tag (`@v8`). A tag moves forward a
 - 🚨 Added actionlint to the `code-quality-pnpm` workflow, linting the caller's `.github/workflows` on every run; the `lint-workflows` input turns it off. See [Migrating from v7 to v8](README.md#migrating-from-v7-to-v8).
 - Added a `check-commands` input to the `code-quality-pnpm` workflow, running each entry as its own job on its own runner. `check-command` is now optional and keeps its single `Code quality` job. See [Fanning checks out across runners](README.md#fanning-checks-out-across-runners).
 - Added a readyup kit that checks a caller of the `code-quality-pnpm` workflow against the current major, run with `rdy run --from github:williamthorsen/.github`. See [Checking a caller](README.md#checking-a-caller).
+- Added runner selection to the `code-quality-pnpm` workflow, through a `CI_RUNS_ON` configuration variable or a `runs-on` input; the default stays `ubuntu-latest`. See [Runner](README.md#runner).
 
 ## v7
 
