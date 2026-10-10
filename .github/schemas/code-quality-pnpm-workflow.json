@@ -40,7 +40,7 @@
                     },
                     "runs-on": {
                       "type": "string",
-                      "description": "Optional. Runner for every job: a single label (self-hosted), a JSON array of labels, or a JSON runner-group object. Overrides this repository's CI_RUNS_ON variable, which takes the same forms. Omit both to run on ubuntu-latest."
+                      "description": "Optional. Runner for every job: a JSON label (\"self-hosted\"), a JSON array of labels, a JSON runner-group object, or a bare label (self-hosted). Overrides this repository's CI_RUNS_ON variable, which takes the same forms. Omit both to run on ubuntu-latest."
                     },
                     "setup-command": {
                       "type": "string",

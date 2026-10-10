@@ -9,8 +9,8 @@ name: Test code-quality-pnpm-workflow
 # that shellspec-version installs shellspec for the check command only when it is set,
 # that lint-workflows: false skips the actionlint step, that check-commands runs one job per entry
 # under the entry's name with actionlint in one leg only, that a check-command caller's job keeps
-# the name "Code quality", and that runs-on moves every job to the runner it names, as a plain label
-# or a JSON array. Every other job lints this repository's own workflows with the step on, and runs
+# the name "Code quality", and that runs-on moves every job to the runner it names, as a bare label,
+# a JSON label, or a JSON array. Every other job lints this repository's own workflows with the step on, and runs
 # on the default runner.
 #
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
@@ -147,11 +147,19 @@ jobs:
         ]
 
   # RUNNER_ARCH tells the hosted Arm runner apart from the ubuntu-latest default.
-  runs-on-label-selects-runner:
-    name: runs-on label selects the runner
+  runs-on-bare-label-selects-runner:
+    name: runs-on bare label selects the runner
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       runs-on: 'ubuntu-24.04-arm'
+      check-command: 'test "$RUNNER_ARCH" = ARM64'
+
+  # The JSON label is the form that workflows reading CI_RUNS_ON with fromJSON alone require.
+  runs-on-json-label-selects-runner:
+    name: runs-on JSON label selects the runner
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      runs-on: '"ubuntu-24.04-arm"'
       check-command: 'test "$RUNNER_ARCH" = ARM64'
 
   runs-on-array-reaches-every-leg:

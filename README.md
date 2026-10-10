@@ -19,7 +19,7 @@ Runs code quality and build checks for pnpm-based projects, on `ubuntu-latest` u
 | `lint-workflows`    | `boolean` | no       | `true`           | Lint the repository's `.github/workflows` with actionlint. Set to `false` to skip the step. See [Workflow linting](#workflow-linting).                                                                                                                            |
 | `node-version`      | `string`  | no       | `''`             | Explicit Node.js version. Overrides `node-version-file`. Omit to use the version your repository already declares.                                                                                                                                                |
 | `node-version-file` | `string`  | no       | `.tool-versions` | Path to a file declaring the Node.js version, relative to the repository root. Ignored when `node-version` is supplied.                                                                                                                                           |
-| `runs-on`           | `string`  | no       | `''`             | Runner for every job: a label, a JSON array of labels, or a JSON runner-group object. Overrides the `CI_RUNS_ON` variable. Omit both to run on `ubuntu-latest`. See [Runner](#runner).                                                                            |
+| `runs-on`           | `string`  | no       | `''`             | Runner for every job: a JSON label, a JSON array of labels, a JSON runner-group object, or a bare label. Overrides the `CI_RUNS_ON` variable. Omit both to run on `ubuntu-latest`. See [Runner](#runner).                                                         |
 | `setup-command`     | `string`  | no       | `''`             | Optional shell command to run after dependency installation and bootstrap, before the check command. Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update). |
 | `shellspec-version` | `string`  | no       | `''`             | Shellspec release to install before the checks run (e.g., `0.28.1`). Omit to install nothing. The installer comes from the named release's own tag.                                                                                                               |
 
@@ -135,7 +135,7 @@ Three constraints on the file, each failing differently:
 Every job runs on `ubuntu-latest` unless the caller names another runner. To move a repository's checks without editing its caller workflow, set a `CI_RUNS_ON` configuration variable on the repository, or on the organization to cover every repository in it:
 
 ```shell
-gh variable set CI_RUNS_ON --body 'self-hosted'
+gh variable set CI_RUNS_ON --body '"self-hosted"'
 ```
 
 To choose the runner for one caller workflow, pass the `runs-on` input, which overrides the variable:
@@ -149,13 +149,16 @@ jobs:
       runs-on: '["self-hosted", "linux"]'
 ```
 
-The variable and the input take the same three forms:
+The variable and the input take the same forms:
 
-- A single label: `self-hosted`
+- A JSON label: `"self-hosted"`
 - A JSON array of labels, all of which the runner must have: `["self-hosted", "linux"]`
 - A JSON runner-group object: `{"group": "ci", "labels": ["linux"]}`
+- A bare label: `self-hosted`
 
-A value that starts with `[` or `{` is read as JSON, and any other value is read as one label. Invalid JSON fails with GitHub's own expression error before any job starts, and that error does not name the setting.
+A value that starts with `[`, `{`, or `"` is read as JSON, and any other value is read as one label. Invalid JSON fails with GitHub's own expression error before any job starts, and that error does not name the setting.
+
+Other workflows that read `CI_RUNS_ON`, such as those in [node-monorepo-tools](https://github.com/williamthorsen/node-monorepo-tools), accept JSON only. Set the variable as JSON when those workflows share it, since a bare label fails there.
 
 The runner applies to every job, including each `check-commands` leg. The workflow's steps assume a Linux runner that has `bash` and `curl`.
 
