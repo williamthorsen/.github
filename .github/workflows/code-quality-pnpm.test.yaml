@@ -22,7 +22,7 @@ name: Test code-quality-pnpm-workflow
 #
 # The runs-on runner-group form is uncovered because hosted runner groups require paid larger
 # runners, and the CI_RUNS_ON variable is uncovered because setting it would move every job here.
-# Both reach the same parsing as the JSON-array case.
+# The variable reaches the same parsing as the input. The group form's { branch is not exercised.
 #
 # Concurrency is declared here at the workflow level — the pattern consumers should follow
 # now that the reusable workflow no longer manages it.
