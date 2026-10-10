@@ -10,6 +10,7 @@ Consumers pin the reusable workflows by major tag (`@v8`). A tag moves forward a
 - Added a `check-commands` input to the `code-quality-pnpm` workflow, running each entry as its own job on its own runner. `check-command` is now optional and keeps its single `Code quality` job. See [Fanning checks out across runners](README.md#fanning-checks-out-across-runners).
 - Added a readyup kit that checks a caller of the `code-quality-pnpm` workflow against the current major, run with `rdy run --from github:williamthorsen/.github`. See [Checking a caller](README.md#checking-a-caller).
 - Added runner selection to the `code-quality-pnpm` workflow, through a `CI_RUNS_ON` configuration variable or a `runs-on` input; the default stays `ubuntu-latest`. See [Runner](README.md#runner).
+- Replaced corepack with `pnpm/setup` in the `code-quality-pnpm` workflow, so that a runner without Node.js installs pnpm; the pnpm version still follows each consumer's `packageManager` field, which must name pnpm 11 or later.
 
 ## v7
 

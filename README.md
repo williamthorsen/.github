@@ -160,7 +160,7 @@ A value that starts with `[`, `{`, or `"` is read as JSON, and any other value i
 
 Other workflows that read `CI_RUNS_ON`, such as those in [node-monorepo-tools](https://github.com/williamthorsen/node-monorepo-tools), accept JSON only. Set the variable as JSON when those workflows share it, since a bare label fails there.
 
-The runner applies to every job, including each `check-commands` leg. The workflow's steps assume a Linux runner that has `bash` and `curl`.
+The runner applies to every job, including each `check-commands` leg. The workflow's steps assume a Linux runner that has `bash` and `curl`; the workflow installs pnpm and Node.js itself, so the runner needs neither.
 
 #### Shell tests
 
