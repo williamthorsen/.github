@@ -38,6 +38,10 @@
                       "type": "string",
                       "description": "Optional. Path to a file declaring the Node.js version, relative to the repository root. Defaults to .tool-versions. Ignored when node-version is provided."
                     },
+                    "runs-on": {
+                      "type": "string",
+                      "description": "Optional. Runner for every job: a single label (self-hosted), a JSON array of labels, or a JSON runner-group object. Overrides this repository's CI_RUNS_ON variable, which takes the same forms. Omit both to run on ubuntu-latest."
+                    },
                     "setup-command": {
                       "type": "string",
                       "description": "Optional. Shell command to run after dependency installation and bootstrap, before the check command. Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update)."
