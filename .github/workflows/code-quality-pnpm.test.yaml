@@ -9,9 +9,10 @@ name: Test code-quality-pnpm-workflow
 # that shellspec-version installs shellspec for the check command only when it is set,
 # that lint-workflows: false skips the actionlint step, that check-commands runs one job per entry
 # under the entry's name with actionlint in one leg only, that a check-command caller's job keeps
-# the name "Code quality", and that runs-on moves every job to the runner it names, as a bare
-# label, a JSON label, or a JSON array. Every other job lints this repository's own workflows with
-# the step on, and runs on the default runner.
+# the name "Code quality", that runs-on moves every job to the runner it names, as a bare
+# label, a JSON label, or a JSON array, and that a Prettier cache saved by one call is restored by
+# a later call and saved only when the checks changed it. Every other job lints this repository's
+# own workflows with the step on, and runs on the default runner.
 #
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
 # supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
@@ -206,3 +207,53 @@ jobs:
             echo "::error::Lint workflows conclusions across the legs: $lint"
             exit 1
           fi
+
+  # Seeds the cache directory directly, so the round trip does not depend on the caller's nmr. The
+  # run-specific content keeps a cache left by an earlier run from satisfying the restore check.
+  prettier-cache-saves:
+    name: prettier cache saves
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      check-command: >-
+        mkdir -p node_modules/.cache/prettier/nmr-fmt &&
+        echo "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" > node_modules/.cache/prettier/nmr-fmt/marker
+
+  prettier-cache-restores:
+    name: prettier cache restores
+    needs: prettier-cache-saves
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      check-command: >-
+        test "$(cat node_modules/.cache/prettier/nmr-fmt/marker)" = "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+
+  # The seeding call changed the cache and must save it; the restoring call and a call whose
+  # check command does not touch the cache leave it unchanged and must skip the save.
+  prettier-cache-saves-only-changes:
+    name: prettier cache saves only changes
+    needs: [default-path-no-setup-command, prettier-cache-restores]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Assert save-step conclusions
+        run: |
+          jobs="$RUNNER_TEMP/jobs.json"
+          gh api --paginate --jq '.jobs[]' \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs" \
+            > "$jobs"
+          for expectation in \
+            'prettier cache saves / Code quality=success' \
+            'prettier cache restores / Code quality=skipped' \
+            'default path (no setup-command) succeeds / Code quality=skipped'; do
+            name="${expectation%=*}"
+            expected="${expectation##*=}"
+            actual=$(jq --raw-output --arg name "$name" \
+              'select(.name == $name) | .steps[] | select(.name == "Save Prettier cache") | .conclusion' \
+              "$jobs")
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::Save Prettier cache in '$name': expected $expected, got '${actual:-missing}'"
+              exit 1
+            fi
+          done

@@ -170,6 +170,12 @@ The input takes a concrete release, not a `latest` token. Every other version th
 
 Tools the code under test consumes, such as `rg` or `jq`, are a different kind of dependency and stay in `setup-command`.
 
+#### Prettier cache
+
+The workflow restores `node_modules/.cache/prettier/nmr-fmt/` before the check command and saves it afterward, so `nmr fmt:check` rechecks only the files that changed since an earlier run. It restores the most recent cache for the runner's OS, preferring one from the same lockfile, and saves only when the checks changed the cache, including after a failed check.
+
+The cache takes effect with an nmr that includes [williamthorsen/node-monorepo-tools#972](https://github.com/williamthorsen/node-monorepo-tools/issues/972); with an earlier nmr, or a check command that does not run `nmr-fmt`, nothing is saved. To run the check uncached, prefix the variable in the check command, as in `check-command: 'NMR_NO_CACHE=1 nmr ci'`; a caller's `env` does not reach a reusable workflow.
+
 #### Workflow linting
 
 After the check command, the workflow runs [actionlint](https://github.com/rhysd/actionlint) over the calling repository's `.github/workflows`, so a workflow that GitHub would reject fails the pull request rather than its first run after merge. A `${{ runner.temp }}` in a job-level `env:`, for example, is accepted by YAML but rejected by GitHub. The step runs even when the check command fails, so one run reports both results.
