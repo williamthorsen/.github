@@ -10,16 +10,17 @@ name: Test code-quality-pnpm-workflow
 # that lint-workflows: false skips the actionlint step, that check-commands runs one job per entry
 # under the entry's name with actionlint in one leg only, that a check-command caller's job keeps
 # the name "Code quality", that runs-on moves every job to the runner it names, as a bare
-# label, a JSON label, or a JSON array, and that a Prettier cache saved by one call is restored by
-# a later call and saved only when the checks changed it. Every other job lints this repository's
-# own workflows with the step on, and runs on the default runner.
+# label, a JSON label, or a JSON array, that a Prettier cache saved by one call is restored by
+# a later call and saved only when the checks changed it, and that check-command runs without
+# pipefail, as the README documents. Every other job lints this repository's own workflows with the
+# step on, and runs on the default runner.
 #
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
 # supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
 # The same limitation leaves the clash between shellspec-version and a hand-rolled installer in
 # setup-command uncovered; the README's migration note carries it instead. The same limitation
-# leaves uncovered a run that fails on an actionlint error, the input validation's failures, and
-# fail-fast: false keeping a failing leg from cancelling the others.
+# leaves uncovered a run that fails on an actionlint error, the input validation's failures,
+# fail-fast: false keeping a failing leg from cancelling the others, and setup-command's pipefail.
 #
 # The runs-on runner-group form is uncovered because hosted runner groups require paid larger
 # runners, and the CI_RUNS_ON variable is uncovered because setting it would move every job here.
@@ -61,6 +62,14 @@ jobs:
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       check-command: ':'
+
+  # Passes only while the check step runs without pipefail, under which the failing left side of
+  # the pipe would fail the step.
+  check-command-runs-without-pipefail:
+    name: check-command runs without pipefail
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      check-command: 'false | true'
 
   matrix-runs-all-legs:
     name: matrix runs all legs (node ${{ matrix.node-version }})

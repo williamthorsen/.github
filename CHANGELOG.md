@@ -12,6 +12,10 @@ Consumers pin the reusable workflows by major tag (`@v8`). A tag moves forward a
 - Added runner selection to the `code-quality-pnpm` workflow, through a `CI_RUNS_ON` configuration variable or a `runs-on` input; the default stays `ubuntu-latest`. See [Runner](README.md#runner).
 - Replaced corepack with `pnpm/setup` in the `code-quality-pnpm` workflow, so that a runner without Node.js installs pnpm; the pnpm version still follows each consumer's `packageManager` field, which must name pnpm 11 or later.
 
+### Documentation
+
+- Documented that the `code-quality-pnpm` workflow runs `check-command`, `check-commands` entries, and `setup-command` as bash scripts, under which shell flags, and why event data must never be interpolated into them. See [Command inputs](README.md#command-inputs).
+
 ## v7
 
 ### Features
