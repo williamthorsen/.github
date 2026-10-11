@@ -181,6 +181,10 @@ The input takes a concrete release, not a `latest` token. Every other version th
 
 Tools the code under test consumes, such as `rg` or `jq`, are a different kind of dependency and stay in `setup-command`.
 
+#### pnpm store cache
+
+On a GitHub-hosted runner, the workflow restores the pnpm store before `pnpm install` and saves it at the end of the job. On a self-hosted runner, it does neither, so `pnpm install` uses whatever store the runner keeps between jobs. A self-hosted runner's round trip to GitHub's cache service can take longer than the checks themselves. `pnpm/setup` also caches its lockfile verification log on every runner, which is under a kilobyte.
+
 #### Prettier cache
 
 The workflow restores `node_modules/.cache/prettier/nmr-fmt/` before the check command and saves it afterward, so `nmr fmt:check` rechecks only the files that changed since an earlier run. It restores the most recent cache for the runner's OS, preferring one from the same lockfile, and saves only when the checks changed the cache, including after a failed check.
