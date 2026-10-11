@@ -8,8 +8,10 @@ name: Test code-quality-pnpm-workflow
 # node-version-file names another path,
 # that shellspec-version installs shellspec for the check command only when it is set,
 # that lint-workflows: false skips the actionlint step, that check-commands runs one job per entry
-# under the entry's name with actionlint in one leg only, and that a check-command caller's job keeps
-# the name "Code quality". Every other job lints this repository's own workflows with the step on.
+# under the entry's name with actionlint in one leg only, that a check-command caller's job keeps
+# the name "Code quality", and that runs-on moves every job to the runner it names, as a bare
+# label, a JSON label, or a JSON array. Every other job lints this repository's own workflows with
+# the step on, and runs on the default runner.
 #
 # The missing-.tool-versions failure path is deliberately uncovered: continue-on-error is not
 # supported on jobs that call a reusable workflow, so a call expected to fail cannot be asserted.
@@ -17,6 +19,10 @@ name: Test code-quality-pnpm-workflow
 # setup-command uncovered; the README's migration note carries it instead. The same limitation
 # leaves uncovered a run that fails on an actionlint error, the input validation's failures, and
 # fail-fast: false keeping a failing leg from cancelling the others.
+#
+# The runs-on runner-group form is uncovered because hosted runner groups require paid larger
+# runners, and the CI_RUNS_ON variable is uncovered because setting it would move every job here.
+# The variable reaches the same parsing as the input. The group form's { branch is not exercised.
 #
 # Concurrency is declared here at the workflow level — the pattern consumers should follow
 # now that the reusable workflow no longer manages it.
@@ -59,7 +65,7 @@ jobs:
     name: matrix runs all legs (node ${{ matrix.node-version }})
     strategy:
       matrix:
-        node-version: ['22.13.0', '24.18.0']
+        node-version: ['24.17.0', '24.18.0']
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       node-version: ${{ matrix.node-version }}
@@ -79,8 +85,8 @@ jobs:
     name: node-version overrides .tool-versions
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
-      node-version: '22.13.0'
-      check-command: 'test "$(node --version)" = "v22.13.0"'
+      node-version: '24.17.0'
+      check-command: 'test "$(node --version)" = "v24.17.0"'
 
   # The fixture declares a version .tool-versions does not, so this passes only if the input
   # reaches setup-node. A node-version-file hardcoded to the default would fail here.
@@ -89,7 +95,7 @@ jobs:
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       node-version-file: '.github/fixtures/.node-version'
-      check-command: 'test "$(node --version)" = "v22.13.0"'
+      check-command: 'test "$(node --version)" = "v24.17.0"'
 
   # Asserts the installed release is the requested one and that `shellspec` resolves for the check
   # command. $HOME/.local/bin is on the hosted runner's default PATH, so this does not cover the
@@ -138,6 +144,33 @@ jobs:
         [
           { "name": "first", "command": "test -f package.json" },
           { "name": "second", "command": "node --version && test -f .tool-versions && :" }
+        ]
+
+  # RUNNER_ARCH tells the hosted Arm runner apart from the ubuntu-latest default.
+  runs-on-bare-label-selects-runner:
+    name: runs-on bare label selects the runner
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      runs-on: 'ubuntu-24.04-arm'
+      check-command: 'test "$RUNNER_ARCH" = ARM64'
+
+  # The JSON label is the form that workflows reading CI_RUNS_ON with fromJSON alone require.
+  runs-on-json-label-selects-runner:
+    name: runs-on JSON label selects the runner
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      runs-on: '"ubuntu-24.04-arm"'
+      check-command: 'test "$RUNNER_ARCH" = ARM64'
+
+  runs-on-array-reaches-every-leg:
+    name: runs-on array reaches every leg
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      runs-on: '["ubuntu-24.04-arm"]'
+      check-commands: >-
+        [
+          { "name": "first", "command": "test \"$RUNNER_ARCH\" = ARM64" },
+          { "name": "second", "command": "test \"$RUNNER_ARCH\" = ARM64" }
         ]
 
   # Reads the names GitHub recorded, which callers' branch protection matches against. Reading by

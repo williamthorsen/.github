@@ -8,7 +8,7 @@ Organization-wide workflows and default templates.
 
 ### `code-quality-pnpm-workflow.yaml`
 
-Runs code quality and build checks for pnpm-based projects on `ubuntu-latest`.
+Runs code quality and build checks for pnpm-based projects, on `ubuntu-latest` unless the caller names another runner (see [Runner](#runner)).
 
 #### Inputs
 
@@ -19,6 +19,7 @@ Runs code quality and build checks for pnpm-based projects on `ubuntu-latest`.
 | `lint-workflows`    | `boolean` | no       | `true`           | Lint the repository's `.github/workflows` with actionlint. Set to `false` to skip the step. See [Workflow linting](#workflow-linting).                                                                                                                            |
 | `node-version`      | `string`  | no       | `''`             | Explicit Node.js version. Overrides `node-version-file`. Omit to use the version your repository already declares.                                                                                                                                                |
 | `node-version-file` | `string`  | no       | `.tool-versions` | Path to a file declaring the Node.js version, relative to the repository root. Ignored when `node-version` is supplied.                                                                                                                                           |
+| `runs-on`           | `string`  | no       | `''`             | Runner for every job: a JSON label, a JSON array of labels, a JSON runner-group object, or a bare label. Overrides the `CI_RUNS_ON` variable. Omit both to run on `ubuntu-latest`. See [Runner](#runner).                                                         |
 | `setup-command`     | `string`  | no       | `''`             | Optional shell command to run after dependency installation and bootstrap, before the check command. Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update). |
 | `shellspec-version` | `string`  | no       | `''`             | Shellspec release to install before the checks run (e.g., `0.28.1`). Omit to install nothing. The installer comes from the named release's own tag.                                                                                                               |
 
@@ -128,6 +129,38 @@ Three constraints on the file, each failing differently:
 - It must exist. A repository with neither a `node-version` input nor the file fails with `The specified node version file at: ... does not exist`. Add `.tool-versions`, or pass `node-version` explicitly.
 - It must declare a `nodejs` entry. A file present without one resolves to its own contents as the requested version, and the run fails with `Unable to find Node version '<contents>' for platform linux and architecture x64.` A polyglot `.tool-versions` kept for python or awscli alone lands here.
 - The `nodejs` entry must carry a single version and no trailing whitespace. `nodejs 24.18.0` resolves; `nodejs 24.18.0 22.13.0` does not, and fails the same way as a missing entry. Entries for other tools on their own lines are ignored, so a multi-tool `.tool-versions` is fine.
+
+#### Runner
+
+Every job runs on `ubuntu-latest` unless the caller names another runner. To move a repository's checks without editing its caller workflow, set a `CI_RUNS_ON` configuration variable on the repository, or on the organization to cover every repository in it:
+
+```shell
+gh variable set CI_RUNS_ON --body '"self-hosted"'
+```
+
+To choose the runner for one caller workflow, pass the `runs-on` input, which overrides the variable:
+
+```yaml
+jobs:
+  code-quality:
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
+    with:
+      check-command: 'pnpm run ci'
+      runs-on: '["self-hosted", "linux"]'
+```
+
+The variable and the input take the same forms:
+
+- A JSON label: `"self-hosted"`
+- A JSON array of labels, all of which the runner must have: `["self-hosted", "linux"]`
+- A JSON runner-group object: `{"group": "ci", "labels": ["linux"]}`
+- A bare label: `self-hosted`
+
+A value that starts with `[`, `{`, or `"` is read as JSON, and any other value is read as one label. Invalid JSON fails with GitHub's own expression error before any job starts, and that error does not name the setting.
+
+Other workflows that read `CI_RUNS_ON`, such as those in [node-monorepo-tools](https://github.com/williamthorsen/node-monorepo-tools), accept JSON only. Set the variable as JSON when those workflows share it, since a bare label fails there.
+
+The runner applies to every job, including each `check-commands` leg. The workflow's steps assume a Linux runner that has `bash` and `curl`; the workflow installs pnpm and Node.js itself, so the runner needs neither.
 
 #### Shell tests
 

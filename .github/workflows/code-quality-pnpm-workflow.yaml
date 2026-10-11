@@ -43,6 +43,16 @@ on:
         description: |
           Path to a file declaring the Node.js version, relative to the repository root.
           Ignored when node-version is supplied.
+      runs-on:
+        type: string
+        required: false
+        default: ''
+        description: |
+          Runner for every job: a JSON label ('"self-hosted"'), a JSON array of labels
+          ('["self-hosted", "linux"]'), a JSON runner-group object ('{"group": "ci"}'), or a bare
+          label (self-hosted).
+          Overrides the calling repository's CI_RUNS_ON variable, which takes the same forms.
+          Leave both unset to run on ubuntu-latest.
       setup-command:
         type: string
         required: false
@@ -64,7 +74,9 @@ jobs:
     # A name that references matrix keeps GitHub from appending the matrix values, so a
     # check-command caller's check stays "Code quality", which branch protection names.
     name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    # A value that opens with [, {, or " is JSON, as workflows that read CI_RUNS_ON with fromJSON
+    # alone require; any other is one label, which toJSON quotes so that fromJSON reads every form.
+    runs-on: ${{ fromJSON((startsWith(inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest', '[') || startsWith(inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest', '{') || startsWith(inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest', '"')) && (inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest') || toJSON(inputs.runs-on || vars.CI_RUNS_ON || 'ubuntu-latest')) }}
     timeout-minutes: 15
 
     strategy:
@@ -103,9 +115,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      # pnpm version is governed by each consumer's `packageManager` field in package.json.
-      - name: Enable corepack
-        run: corepack enable
+      # pnpm version is governed by each consumer's `packageManager` field in package.json. The pnpm
+      # binary is self-contained, so this step needs no Node.js on the runner. node-version-file:
+      # false stops it from installing Node.js from a version file, leaving the runtime to
+      # setup-node.
+      - name: Set up pnpm
+        uses: pnpm/setup@v3
+        with:
+          cache: true
+          install: false
+          node-version-file: false
 
       # An explicit node-version overrides the file, matching actions/setup-node's own precedence.
       # The file is blanked in that case so setup-node does not warn about conflicting inputs.
@@ -116,7 +135,6 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           node-version-file: ${{ inputs.node-version == '' && inputs.node-version-file || '' }}
-          cache: 'pnpm'
 
       # shellspec is not in apt. Fetching install.sh from the named release's own tag keeps the
       # installer and the code it installs one reviewed snapshot, and leaves no shellspec version
