@@ -89,6 +89,7 @@ jobs:
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NMR_FMT_CACHE_PATH: node_modules/.cache/prettier/nmr-fmt
 
     steps:
       - name: Validate inputs
@@ -165,8 +166,44 @@ jobs:
           SETUP_COMMAND: ${{ inputs.setup-command }}
         run: bash -eo pipefail -c "$SETUP_COMMAND"
 
+      # Restored after pnpm install, so that pnpm never finds a node_modules it did not create.
+      # nmr-fmt discards cache files from another lockfile, so the OS-only fallback is safe.
+      - name: Restore Prettier cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.NMR_FMT_CACHE_PATH }}
+          key: nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}
+          restore-keys: |
+            nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            nmr-fmt-${{ runner.os }}-
+
+      # The digests let the save step skip a cache that the checks left unchanged or never created.
+      - name: Fingerprint Prettier cache before checks
+        id: prettier-cache-before
+        run: |
+          if [ -d "$NMR_FMT_CACHE_PATH" ]; then
+            echo "digest=$(find "$NMR_FMT_CACHE_PATH" -type f -exec cksum {} + | sort | cksum)" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run code quality & build checks
         run: ${{ matrix.command || inputs.check-command }}
+
+      - name: Fingerprint Prettier cache after checks
+        id: prettier-cache-after
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -d "$NMR_FMT_CACHE_PATH" ]; then
+            echo "digest=$(find "$NMR_FMT_CACHE_PATH" -type f -exec cksum {} + | sort | cksum)" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Saves after a failed check too, since Prettier records only the files that passed. The key
+      # is unique per run and leg because an existing key is never overwritten.
+      - name: Save Prettier cache
+        if: ${{ !cancelled() && steps.prettier-cache-after.outputs.digest != steps.prettier-cache-before.outputs.digest }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.NMR_FMT_CACHE_PATH }}
+          key: nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}
 
       # Runs after a failed check too, so one run reports both results, and in the first leg only,
       # since every leg would lint the same files. Dependabot does not rotate ACTIONLINT_VERSION;
