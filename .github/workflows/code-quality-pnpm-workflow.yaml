@@ -167,12 +167,13 @@ jobs:
         run: bash -eo pipefail -c "$SETUP_COMMAND"
 
       # Restored after pnpm install, so that pnpm never finds a node_modules it did not create.
-      # nmr-fmt discards cache files from another lockfile, so the OS-only fallback is safe.
+      # nmr-fmt discards cache files from another lockfile, so the OS-only fallback is safe. Every
+      # saved key ends in a nonce, so the restore matches by prefix and takes the most recent cache.
       - name: Restore Prettier cache
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.NMR_FMT_CACHE_PATH }}
-          key: nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}
+          key: nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
             nmr-fmt-${{ runner.os }}-
@@ -195,15 +196,17 @@ jobs:
           if [ -d "$NMR_FMT_CACHE_PATH" ]; then
             echo "digest=$(find "$NMR_FMT_CACHE_PATH" -type f -exec cksum {} + | sort | cksum)" >> "$GITHUB_OUTPUT"
           fi
+          echo "nonce=$(od -An -tx1 -N8 /dev/urandom | tr -d ' \n')" >> "$GITHUB_OUTPUT"
 
-      # Saves after a failed check too, since Prettier records only the files that passed. The key
-      # is unique per run and leg because an existing key is never overwritten.
+      # Saves after a failed check too, since Prettier records only the files that passed. The nonce
+      # makes every key unique, because an existing key is never overwritten and the calls in one
+      # caller run, such as the legs of a caller's matrix, share the run id and the job index.
       - name: Save Prettier cache
         if: ${{ !cancelled() && steps.prettier-cache-after.outputs.digest != steps.prettier-cache-before.outputs.digest }}
         uses: actions/cache/save@v6
         with:
           path: ${{ env.NMR_FMT_CACHE_PATH }}
-          key: nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}
+          key: nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}-${{ steps.prettier-cache-after.outputs.nonce }}
 
       # Runs after a failed check too, so one run reports both results, and in the first leg only,
       # since every leg would lint the same files. Dependabot does not rotate ACTIONLINT_VERSION;
