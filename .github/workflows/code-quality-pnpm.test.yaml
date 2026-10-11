@@ -26,6 +26,9 @@ name: Test code-quality-pnpm-workflow
 # runners, and the CI_RUNS_ON variable is uncovered because setting it would move every job here.
 # The variable reaches the same parsing as the input. The group form's { branch is not exercised.
 #
+# The pnpm store cache's self-hosted branch is uncovered because this repository has no
+# self-hosted runner; every job here takes the GitHub-hosted branch, which caches the store.
+#
 # Concurrency is declared here at the workflow level — the pattern consumers should follow
 # now that the reusable workflow no longer manages it.
 
