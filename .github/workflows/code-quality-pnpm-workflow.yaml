@@ -14,6 +14,7 @@ on:
         description: |
           Command to run code quality and build checks in a single job named "Code quality"
           (e.g., "pnpm run ci", "nmr ci"). Pass this or check-commands, not both.
+          Runs as a bash script under bash -e, without pipefail. Never interpolate event data into it.
       check-commands:
         type: string
         required: false
@@ -22,6 +23,8 @@ on:
           JSON array of {"name": ..., "command": ...} entries. Each entry runs as its own job, named
           after the entry, on its own runner. A composite split into legs no longer fires its nmr
           :post hook, so the leg that replaces it names that step. Pass this or check-command, not both.
+          Each command runs as a bash script under bash -e, without pipefail. Never interpolate event
+          data into it.
       lint-workflows:
         type: boolean
         required: false
@@ -61,6 +64,7 @@ on:
           Optional shell command to run after dependency installation and bootstrap, before the check command.
           Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags,
           and any necessary index updates (e.g., apt-get update).
+          Runs as a bash script under bash -eo pipefail. Never interpolate event data into it.
       shellspec-version:
         type: string
         required: false
@@ -186,6 +190,8 @@ jobs:
             echo "digest=$(find "$NMR_FMT_CACHE_PATH" -type f -exec cksum {} + | sort | cksum)" >> "$GITHUB_OUTPUT"
           fi
 
+      # The command is the step's script, so routing it through env: and bash -c would run the same
+      # text. The step declares no shell, so the runner's default bash -e applies, without pipefail.
       - name: Run code quality & build checks
         run: ${{ matrix.command || inputs.check-command }}
 
