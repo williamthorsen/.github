@@ -65,7 +65,7 @@ jobs:
     name: matrix runs all legs (node ${{ matrix.node-version }})
     strategy:
       matrix:
-        node-version: ['22.13.0', '24.18.0']
+        node-version: ['24.17.0', '24.18.0']
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       node-version: ${{ matrix.node-version }}
@@ -85,8 +85,8 @@ jobs:
     name: node-version overrides .tool-versions
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
-      node-version: '22.13.0'
-      check-command: 'test "$(node --version)" = "v22.13.0"'
+      node-version: '24.17.0'
+      check-command: 'test "$(node --version)" = "v24.17.0"'
 
   # The fixture declares a version .tool-versions does not, so this passes only if the input
   # reaches setup-node. A node-version-file hardcoded to the default would fail here.
@@ -95,7 +95,7 @@ jobs:
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       node-version-file: '.github/fixtures/.node-version'
-      check-command: 'test "$(node --version)" = "v22.13.0"'
+      check-command: 'test "$(node --version)" = "v24.17.0"'
 
   # Asserts the installed release is the requested one and that `shellspec` resolves for the check
   # command. $HOME/.local/bin is on the hosted runner's default PATH, so this does not cover the
