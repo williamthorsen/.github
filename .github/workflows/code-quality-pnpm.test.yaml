@@ -8,7 +8,7 @@ name: Test code-quality-pnpm-workflow
 # node-version-file names another path,
 # that shellspec-version installs shellspec for the check command only when it is set,
 # that shellcheck-version installs the named shellcheck ahead of the runner's own, on X64 and
-# ARM64, only when it is set,
+# ARM64 and from a release that publishes only .tar.xz, only when it is set,
 # that lint-workflows: false skips the actionlint step, that check-commands runs one job per entry
 # under the entry's name with actionlint in one leg only, that a check-command caller's job keeps
 # the name "Code quality", that runs-on moves every job to the runner it names, as a bare
@@ -148,6 +148,17 @@ jobs:
       shellcheck-version: '0.11.0'
       check-command: >-
         shellcheck --version | grep --quiet --line-regexp 'version: 0.11.0' &&
+        test "$(command -v shellcheck)" = "$HOME/.local/bin/shellcheck"
+
+  # 0.10.0 publishes only a .tar.xz asset, so this covers the fallback from .tar.gz. The hosted
+  # image has xz, so the .tar.gz path's independence from xz is not covered here.
+  shellcheck-version-falls-back-to-tar-xz:
+    name: shellcheck-version falls back to .tar.xz
+    uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
+    with:
+      shellcheck-version: '0.10.0'
+      check-command: >-
+        shellcheck --version | grep --quiet --line-regexp 'version: 0.10.0' &&
         test "$(command -v shellcheck)" = "$HOME/.local/bin/shellcheck"
 
   # Asserts on the install path rather than on `command -v`, because the hosted image provides a

@@ -169,10 +169,11 @@ jobs:
           "$HOME/.local/bin/shellspec" --version
 
       # The runner image's shellcheck, where it has one, follows the image rather than the caller,
-      # and a self-hosted runner may lack it. The .tar.xz asset is the one that every release
-      # publishes. Installing over an existing binary keeps one that an earlier job left on a
-      # self-hosted runner from satisfying the pin. Lint workflows runs later, so actionlint's
-      # shellcheck pass uses this release too.
+      # and a self-hosted runner may lack it. The .tar.gz asset needs only gzip, because the
+      # actions-runner container image does not have xz; releases before 0.11.0 publish .tar.xz
+      # alone, so the step falls back to it. Installing over an existing binary keeps one that an
+      # earlier job left on a self-hosted runner from satisfying the pin. Lint workflows runs
+      # later, so actionlint's shellcheck pass uses this release too.
       - name: Install shellcheck
         if: inputs.shellcheck-version != ''
         env:
@@ -186,10 +187,14 @@ jobs:
               exit 1
               ;;
           esac
-          archive="$RUNNER_TEMP/shellcheck.tar.xz"
-          curl --fail --silent --show-error --location --retry 3 --output "$archive" \
-            "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.$arch.tar.xz"
-          tar --extract --xz --file "$archive" --directory "$RUNNER_TEMP"
+          asset="https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.$arch"
+          archive="$RUNNER_TEMP/shellcheck.tar"
+          if curl --fail --silent --location --retry 3 --output "$archive.gz" "$asset.tar.gz"; then
+            tar --extract --gzip --file "$archive.gz" --directory "$RUNNER_TEMP"
+          else
+            curl --fail --silent --show-error --location --retry 3 --output "$archive.xz" "$asset.tar.xz"
+            tar --extract --xz --file "$archive.xz" --directory "$RUNNER_TEMP"
+          fi
           mkdir --parents "$HOME/.local/bin"
           install --mode=0755 "$RUNNER_TEMP/shellcheck-v$SHELLCHECK_VERSION/shellcheck" "$HOME/.local/bin/shellcheck"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
