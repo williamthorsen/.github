@@ -173,17 +173,17 @@ A value that starts with `[`, `{`, or `"` is read as JSON, and any other value i
 
 Other workflows that read `CI_RUNS_ON`, such as those in [node-monorepo-tools](https://github.com/williamthorsen/node-monorepo-tools), accept JSON only. Set the variable as JSON when those workflows share it, since a bare label fails there.
 
-The runner applies to every job, including each `check-commands` leg. The workflow's steps assume a Linux runner that has `bash` and `curl`, plus `tar` and `xz` when `shellcheck-version` is set; the workflow installs pnpm and Node.js itself, so the runner needs neither.
+The runner applies to every job, including each `check-commands` leg. The workflow's steps assume a Linux runner that has `bash` and `curl`, plus `tar` and `gzip` when `shellcheck-version` is set, and `xz` when it names a release before 0.11.0, which publishes only `.tar.xz` assets; the workflow installs pnpm and Node.js itself, so the runner needs neither.
 
 #### Shell tools
 
-`shellcheck` and `shellspec` check the shell code rather than being subjects of it, so the workflow provisions them the way it provisions Node and pnpm. Set `shellcheck-version` or `shellspec-version` to the release you want and the tool is on `PATH` for the check command; leave an input unset and nothing is downloaded for that tool. Both install under `$HOME/.local/bin`, without sudo.
+`shellcheck` and `shellspec` check the shell code rather than being subjects of it, so the workflow provisions them the way it provisions Node and pnpm. When a caller sets `shellcheck-version` or `shellspec-version` to a release, the workflow puts the tool on `PATH` for the check command; when an input is unset, the workflow does not download anything for that tool. Both install under `$HOME/.local/bin`, without sudo.
 
-`shellspec` is not in Ubuntu's apt repositories. `shellcheck` is, but a runner's copy follows its image rather than your repository: Ubuntu 24.04 ships 0.9.0, which reports findings that 0.11.0 does not, and a self-hosted runner may not have shellcheck at all. A pinned shellcheck replaces any copy that the runner already has, and the workflow-linting step's shellcheck pass uses it too, so `run:` scripts and your own scripts are checked by one release.
+`shellspec` is not in Ubuntu's apt repositories. `shellcheck` is, but a runner's copy follows its image rather than the calling repository: Ubuntu 24.04 ships 0.9.0, which reports findings that 0.11.0 does not, and a self-hosted runner may not have shellcheck at all. A pinned shellcheck replaces any copy that the runner already has, and the workflow-linting step's shellcheck pass uses it too, so one release checks both the workflows' `run:` scripts and the repository's own scripts.
 
-Each input takes a concrete release, not a `latest` token. Every other version this workflow touches is pinned, and a floating one would let a tool's release change your gate with no commit in either repository to explain it. Naming the release also fixes where the tool comes from: that release's own tag or assets, so no moving branch reaches the shell. `shellcheck-version` supports X64 and ARM64 runners.
+Each input takes a concrete release, not a `latest` token. Every other version this workflow touches is pinned, and a floating one would let a tool's release change a caller's gate with no commit in either repository to explain it. Naming the release also fixes where the tool comes from: that release's own tag or assets, so no moving branch reaches the shell. `shellcheck-version` supports X64 and ARM64 runners.
 
-Tools the code under test consumes, such as `rg` or `jq`, are a different kind of dependency and stay in `setup-command`.
+Tools consumed by the code under test, such as `rg` or `jq`, are a different kind of dependency and stay in `setup-command`.
 
 #### pnpm store cache
 
