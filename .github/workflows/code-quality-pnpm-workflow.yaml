@@ -65,6 +65,14 @@ on:
           Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags,
           and any necessary index updates (e.g., apt-get update).
           Runs as a bash script under bash -eo pipefail. Never interpolate event data into it.
+      shellcheck-version:
+        type: string
+        required: false
+        default: ''
+        description: |
+          Shellcheck release to install before the checks run (e.g. "0.11.0"). Leave unset to install
+          nothing. The binary comes from the named release's own assets, and actionlint's shellcheck
+          pass uses it too.
       shellspec-version:
         type: string
         required: false
@@ -159,6 +167,39 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           # $GITHUB_PATH takes effect in later steps, so verify through the absolute path.
           "$HOME/.local/bin/shellspec" --version
+
+      # The runner image's shellcheck, where it has one, follows the image rather than the caller,
+      # and a self-hosted runner may lack it. The .tar.gz asset needs only gzip, because the
+      # actions-runner container image does not have xz; releases before 0.11.0 publish .tar.xz
+      # alone, so the step falls back to it. Installing over an existing binary keeps one that an
+      # earlier job left on a self-hosted runner from satisfying the pin. Lint workflows runs
+      # later, so actionlint's shellcheck pass uses this release too.
+      - name: Install shellcheck
+        if: inputs.shellcheck-version != ''
+        env:
+          SHELLCHECK_VERSION: ${{ inputs.shellcheck-version }}
+        run: |
+          case "$RUNNER_ARCH" in
+            X64) arch=x86_64 ;;
+            ARM64) arch=aarch64 ;;
+            *)
+              echo "::error::shellcheck-version supports X64 and ARM64 Linux runners, not $RUNNER_ARCH."
+              exit 1
+              ;;
+          esac
+          asset="https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.$arch"
+          archive="$RUNNER_TEMP/shellcheck.tar"
+          if curl --fail --silent --location --retry 3 --output "$archive.gz" "$asset.tar.gz"; then
+            tar --extract --gzip --file "$archive.gz" --directory "$RUNNER_TEMP"
+          else
+            curl --fail --silent --show-error --location --retry 3 --output "$archive.xz" "$asset.tar.xz"
+            tar --extract --xz --file "$archive.xz" --directory "$RUNNER_TEMP"
+          fi
+          mkdir --parents "$HOME/.local/bin"
+          install --mode=0755 "$RUNNER_TEMP/shellcheck-v$SHELLCHECK_VERSION/shellcheck" "$HOME/.local/bin/shellcheck"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          # $GITHUB_PATH takes effect in later steps, so verify through the absolute path.
+          "$HOME/.local/bin/shellcheck" --version
 
       - name: Install dependencies
         run: pnpm install

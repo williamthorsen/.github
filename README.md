@@ -12,16 +12,17 @@ Runs code quality and build checks for pnpm-based projects, on `ubuntu-latest` u
 
 #### Inputs
 
-| Name                | Type      | Required | Default          | Description                                                                                                                                                                                                                                                                                                                                               |
-| ------------------- | --------- | -------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `check-command`     | `string`  | no       | `''`             | Command to run code quality and build checks in one job named `Code quality` (e.g., `pnpm run ci`, `nmr ci`). Runs as a bash script under `bash -e`; see [Command inputs](#command-inputs). Pass this or `check-commands`, not both.                                                                                                                      |
-| `check-commands`    | `string`  | no       | `''`             | JSON array of `{ "name": ..., "command": ... }` entries, each run as its own job on its own runner. Each `command` runs as a bash script under `bash -e`; see [Command inputs](#command-inputs). Pass this or `check-command`, not both. See [Fanning checks out across runners](#fanning-checks-out-across-runners).                                     |
-| `lint-workflows`    | `boolean` | no       | `true`           | Lint the repository's `.github/workflows` with actionlint. Set to `false` to skip the step. See [Workflow linting](#workflow-linting).                                                                                                                                                                                                                    |
-| `node-version`      | `string`  | no       | `''`             | Explicit Node.js version. Overrides `node-version-file`. Omit to use the version your repository already declares.                                                                                                                                                                                                                                        |
-| `node-version-file` | `string`  | no       | `.tool-versions` | Path to a file declaring the Node.js version, relative to the repository root. Ignored when `node-version` is supplied.                                                                                                                                                                                                                                   |
-| `runs-on`           | `string`  | no       | `''`             | Runner for every job: a JSON label, a JSON array of labels, a JSON runner-group object, or a bare label. Overrides the `CI_RUNS_ON` variable. Omit both to run on `ubuntu-latest`. See [Runner](#runner).                                                                                                                                                 |
-| `setup-command`     | `string`  | no       | `''`             | Optional shell command to run after dependency installation and bootstrap, before the check command. Runs as a bash script under `bash -eo pipefail`; see [Command inputs](#command-inputs). Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update). |
-| `shellspec-version` | `string`  | no       | `''`             | Shellspec release to install before the checks run (e.g., `0.28.1`). Omit to install nothing. The installer comes from the named release's own tag.                                                                                                                                                                                                       |
+| Name                 | Type      | Required | Default          | Description                                                                                                                                                                                                                                                                                                                                               |
+| -------------------- | --------- | -------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `check-command`      | `string`  | no       | `''`             | Command to run code quality and build checks in one job named `Code quality` (e.g., `pnpm run ci`, `nmr ci`). Runs as a bash script under `bash -e`; see [Command inputs](#command-inputs). Pass this or `check-commands`, not both.                                                                                                                      |
+| `check-commands`     | `string`  | no       | `''`             | JSON array of `{ "name": ..., "command": ... }` entries, each run as its own job on its own runner. Each `command` runs as a bash script under `bash -e`; see [Command inputs](#command-inputs). Pass this or `check-command`, not both. See [Fanning checks out across runners](#fanning-checks-out-across-runners).                                     |
+| `lint-workflows`     | `boolean` | no       | `true`           | Lint the repository's `.github/workflows` with actionlint. Set to `false` to skip the step. See [Workflow linting](#workflow-linting).                                                                                                                                                                                                                    |
+| `node-version`       | `string`  | no       | `''`             | Explicit Node.js version. Overrides `node-version-file`. Omit to use the version your repository already declares.                                                                                                                                                                                                                                        |
+| `node-version-file`  | `string`  | no       | `.tool-versions` | Path to a file declaring the Node.js version, relative to the repository root. Ignored when `node-version` is supplied.                                                                                                                                                                                                                                   |
+| `runs-on`            | `string`  | no       | `''`             | Runner for every job: a JSON label, a JSON array of labels, a JSON runner-group object, or a bare label. Overrides the `CI_RUNS_ON` variable. Omit both to run on `ubuntu-latest`. See [Runner](#runner).                                                                                                                                                 |
+| `setup-command`      | `string`  | no       | `''`             | Optional shell command to run after dependency installation and bootstrap, before the check command. Runs as a bash script under `bash -eo pipefail`; see [Command inputs](#command-inputs). Use for installing system dependencies. The consumer is responsible for sudo, package-manager flags, and any necessary index updates (e.g., apt-get update). |
+| `shellcheck-version` | `string`  | no       | `''`             | Shellcheck release to install before the checks run (e.g., `0.11.0`). Omit to install nothing. The binary comes from the named release's own assets. See [Shell tools](#shell-tools).                                                                                                                                                                     |
+| `shellspec-version`  | `string`  | no       | `''`             | Shellspec release to install before the checks run (e.g., `0.28.1`). Omit to install nothing. The installer comes from the named release's own tag.                                                                                                                                                                                                       |
 
 #### Usage
 
@@ -50,7 +51,7 @@ jobs:
 
 The `setup-command` runs after dependencies are installed and the optional `bootstrap` script, and before `check-command`. The workflow does not run `apt-get update` or supply `sudo` on the consumer's behalf — include those in the command when needed.
 
-Run shell tests (e.g., `shellspec`):
+Lint shell scripts and run shell tests (e.g., `shellcheck` and `shellspec`):
 
 ```yaml
 jobs:
@@ -58,6 +59,7 @@ jobs:
     uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
     with:
       check-command: 'pnpm run ci'
+      shellcheck-version: '0.11.0'
       shellspec-version: '0.28.1'
 ```
 
@@ -171,15 +173,17 @@ A value that starts with `[`, `{`, or `"` is read as JSON, and any other value i
 
 Other workflows that read `CI_RUNS_ON`, such as those in [node-monorepo-tools](https://github.com/williamthorsen/node-monorepo-tools), accept JSON only. Set the variable as JSON when those workflows share it, since a bare label fails there.
 
-The runner applies to every job, including each `check-commands` leg. The workflow's steps assume a Linux runner that has `bash` and `curl`; the workflow installs pnpm and Node.js itself, so the runner needs neither.
+The runner applies to every job, including each `check-commands` leg. The workflow's steps assume a Linux runner that has `bash` and `curl`, plus `tar` and `gzip` when `shellcheck-version` is set, and `xz` when it names a release before 0.11.0, which publishes only `.tar.xz` assets; the workflow installs pnpm and Node.js itself, so the runner needs neither.
 
-#### Shell tests
+#### Shell tools
 
-`shellspec` is not in Ubuntu's apt repositories, and it runs the shell tests rather than being a subject of them, so the workflow provisions it the way it provisions Node and pnpm. Set `shellspec-version` to the release you want and `shellspec` is on `PATH` for the check command; leave it unset and no installer is fetched at all.
+`shellcheck` and `shellspec` check the shell code rather than being subjects of it, so the workflow provisions them the way it provisions Node and pnpm. When a caller sets `shellcheck-version` or `shellspec-version` to a release, the workflow puts the tool on `PATH` for the check command; when an input is unset, the workflow does not download anything for that tool. Both install under `$HOME/.local/bin`, without sudo.
 
-The input takes a concrete release, not a `latest` token. Every other version this workflow touches is pinned, and a floating one would let a shellspec release change your gate with no commit in either repository to explain it. Naming the release also fixes where the installer comes from: that release's own tag, so no moving branch reaches the shell.
+`shellspec` is not in Ubuntu's apt repositories. `shellcheck` is, but a runner's copy follows its image rather than the calling repository: Ubuntu 24.04 ships 0.9.0, which reports findings that 0.11.0 does not, and a self-hosted runner may not have shellcheck at all. A pinned shellcheck replaces any copy that the runner already has, and the workflow-linting step's shellcheck pass uses it too, so one release checks both the workflows' `run:` scripts and the repository's own scripts.
 
-Tools the code under test consumes, such as `rg` or `jq`, are a different kind of dependency and stay in `setup-command`.
+Each input takes a concrete release, not a `latest` token. Every other version this workflow touches is pinned, and a floating one would let a tool's release change a caller's gate with no commit in either repository to explain it. Naming the release also fixes where the tool comes from: that release's own tag or assets, so no moving branch reaches the shell. `shellcheck-version` supports X64 and ARM64 runners.
+
+Tools consumed by the code under test, such as `rg` or `jq`, are a different kind of dependency and stay in `setup-command`.
 
 #### pnpm store cache
 
