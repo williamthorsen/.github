@@ -19,7 +19,7 @@
     "@williamthorsen/release-kit": "15.0.0",
     "@williamthorsen/strict-lint": "14.2.1",
     "@williamthorsen/tsconfig": "0.12.1",
-    "codeassembly": "0.17.0",
+    "codeassembly": "0.18.0",
     "esbuild": "0.28.2",
     "eslint": "10.13.0",
     "jiti": "2.7.0",
