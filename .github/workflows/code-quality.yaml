@@ -15,3 +15,4 @@ jobs:
     uses: ./.github/workflows/code-quality-pnpm-workflow.yaml
     with:
       check-command: 'pnpm exec nmr ci'
+      shellcheck-version: '0.11.0'
