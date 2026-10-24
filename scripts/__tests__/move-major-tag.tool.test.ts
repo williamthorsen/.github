@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-const SCRIPT_PATH = path.join(import.meta.dirname, '..', 'scripts', 'move-major-tag.sh');
+const SCRIPT_PATH = path.join(import.meta.dirname, '..', 'move-major-tag.sh');
 
 /** Paths that the hooks set up and the helpers read. */
 const fixture = { gitConfigPath: '', keyDirectory: '', workspace: '' };
