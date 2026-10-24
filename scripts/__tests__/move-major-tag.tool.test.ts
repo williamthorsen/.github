@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -125,6 +125,18 @@ describe('move-major-tag.sh', () => {
     expect(result.status).toBe(1);
     expect(listRemoteTags(repos.remote)).toBe(tagsBefore);
   });
+
+  it('if the remote tag moves while the script waits at the prompt, exits 1 and keeps the remote value', async () => {
+    const repos = createRepos({ kitMajor: 1 });
+    const concurrentId = readMainId(repos.remote);
+
+    const status = await runScriptAtPrompt(repos.clone, () => {
+      git(repos.remote, ['update-ref', 'refs/tags/v1', concurrentId]);
+    });
+
+    expect(status).toBe(1);
+    expect(git(repos.remote, ['rev-parse', 'refs/tags/v1'])).toBe(concurrentId);
+  });
 });
 
 // region | Helpers
@@ -208,6 +220,25 @@ function readRemotePeel(remote: string, tag: string): string {
 /** Runs the script in the clone with the given stdin, capturing its output. */
 function runScript(cwd: string, input: string, extraEnv: Record<string, string> = {}) {
   return spawnSync(SCRIPT_PATH, [], { cwd, encoding: 'utf8', env: buildEnv(extraEnv), input });
+}
+
+/** Runs the script in the clone, calls `atPrompt` once the confirmation prompt appears, then answers yes. */
+function runScriptAtPrompt(cwd: string, atPrompt: () => void): Promise<number | null> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(SCRIPT_PATH, [], { cwd, env: buildEnv(), stdio: ['pipe', 'pipe', 'ignore'] });
+    let output = '';
+    let hasAnswered = false;
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => {
+      output += chunk;
+      if (hasAnswered || !output.includes('[y/N]')) return;
+      hasAnswered = true;
+      atPrompt();
+      child.stdin.end('y\n');
+    });
+    child.on('error', reject);
+    child.on('close', resolve);
+  });
 }
 
 /** Writes a file under the seed repository, creating its directories. */
