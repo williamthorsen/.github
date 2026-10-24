@@ -6,7 +6,7 @@ set -euo pipefail
 # Reads every input from origin rather than from the working tree, so it runs from any branch or worktree. The current
 # major is the highest v<N> tag on origin. The readyup kit's CODE_QUALITY_TARGET_MAJOR at origin/main decides the mode:
 # equal to the current major, the script moves that tag; one higher, it creates the new major tag; anything else, it
-# refuses. It also refuses when main does not descend from the tag that it moves, or when CHANGELOG.md at origin/main
+# refuses. It also refuses when main does not descend from the current major's tag, or when CHANGELOG.md at origin/main
 # lacks a section for the target tag.
 #
 # After confirmation, it creates a signed annotated tag at origin/main and pushes that tag object by its ID, leased
@@ -79,9 +79,9 @@ main() {
       echo "$tag_name already points to $REMOTE/main ($main_id); nothing to move."
       exit 0
     fi
-    git merge-base --is-ancestor "$base_id" "$main_id" ||
-      die "$REMOTE/main does not descend from $tag_name ($base_id); refusing to move the tag off its history"
   fi
+  git merge-base --is-ancestor "$base_id" "$main_id" ||
+    die "$REMOTE/main does not descend from v$current ($base_id); refusing to tag off its history"
 
   # Check the changelog section
   local changelog

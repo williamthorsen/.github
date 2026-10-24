@@ -81,7 +81,12 @@ describe('move-major-tag.sh', () => {
       case: 'the kit targets two majors ahead',
       options: { changelogHeadings: ['v3', 'v1'], kitMajor: 3 },
     },
-    { answer: 'y\n', case: 'main does not descend from the tag', options: { kitMajor: 1, tagOffMain: true } },
+    { answer: 'y\n', case: 'main does not descend from the tag to move', options: { kitMajor: 1, tagOffMain: true } },
+    {
+      answer: 'y\n',
+      case: 'main does not descend from the tag before a new major',
+      options: { changelogHeadings: ['v2', 'v1'], kitMajor: 2, tagOffMain: true },
+    },
     { answer: 'y\n', case: 'the changelog lacks the target section', options: { changelogHeadings: [], kitMajor: 1 } },
   ])('if $case, exits 1 and leaves the remote tags unchanged', ({ answer, options }) => {
     const repos = createRepos(options);
