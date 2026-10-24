@@ -2,6 +2,19 @@
   "version": 1,
   "kits": [
     {
+      "checklistChecks": [
+        {
+          "checklist": "code-quality",
+          "checks": [
+            "code-quality.yaml workflow exists",
+            "code-quality workflow references code-quality-pnpm-workflow.yaml@v8",
+            "code-quality workflow declares a workflow-level concurrency block",
+            "code-quality workflow does not reference pnpm-version",
+            "code-quality workflow does not reference node-version",
+            "code-quality workflow does not reference GH_PACKAGES_TOKEN"
+          ]
+        }
+      ],
       "checklists": [
         "code-quality"
       ],
@@ -15,10 +28,10 @@
       ],
       "name": "default",
       "path": "kits/default.js",
-      "readyupVersion": "0.40.0",
+      "readyupVersion": "0.43.0",
       "source": "kits/default.ts",
       "sourceHash": "8ea0b47c",
-      "targetHash": "4105df66"
+      "targetHash": "7f3ab215"
     }
   ]
 }
