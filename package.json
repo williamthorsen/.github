@@ -15,7 +15,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "@vitest/eslint-plugin": "1.6.27",
     "@williamthorsen/eslint-config-typescript": "20.1.3",
-    "@williamthorsen/nmr": "0.46.1",
+    "@williamthorsen/nmr": "0.50.1",
     "@williamthorsen/release-kit": "15.0.0",
     "@williamthorsen/strict-lint": "14.2.1",
     "@williamthorsen/tsconfig": "0.12.1",
@@ -28,7 +28,7 @@
     "readyup": "0.43.0",
     "typescript": "6.0.3",
     "v11y-check": "0.19.5",
-    "vitest": "5.0.5"
+    "vitest": "4.1.12"
   },
   "packageManager": "pnpm@12.14.0",
   "engines": {
