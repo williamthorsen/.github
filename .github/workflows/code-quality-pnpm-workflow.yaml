@@ -216,12 +216,15 @@ jobs:
       # Restored after pnpm install, so that pnpm never finds a node_modules it did not create.
       # nmr-fmt discards cache files from another lockfile, so the OS-only fallback is safe. Every
       # saved key ends in a nonce, so the restore matches by prefix and takes the most recent cache.
+      # The run-scoped prefix comes first, so that a cache saved earlier in this run, by any
+      # attempt, wins over a newer one saved concurrently by another run on the same ref.
       - name: Restore Prettier cache
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.NMR_FMT_CACHE_PATH }}
           key: nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
+            nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-
             nmr-fmt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
             nmr-fmt-${{ runner.os }}-
 
