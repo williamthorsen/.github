@@ -88,6 +88,9 @@
 - name: security
   color: b60205
   description: Security vulnerability or hardening
+- name: skip-changelog
+  color: cccccc
+  description: Changes a reusable workflow in a way that callers cannot observe, so needs no changelog entry
 - name: spike
   color: '000000'
   description: Investigation

@@ -2,6 +2,10 @@
 
 Consumers pin the reusable workflows by major tag (`@v8`). A non-breaking change moves the current tag forward; a breaking change opens the next one. [CHANGELOG.md](../CHANGELOG.md) records each tag's changes.
 
+## Changelog entries
+
+Every pull request that changes a reusable workflow, a file under `.github/workflows/` that declares `on: workflow_call`, also changes [CHANGELOG.md](../CHANGELOG.md), with an entry under the section of the major that the change ships in. The `Changelog` workflow runs `scripts/check-changelog.sh` against the pull request's diff and fails when the workflow changed without the changelog. Label the pull request `skip-changelog` when callers cannot observe the change, such as a comment-only edit; adding or removing the label re-runs the check.
+
 ## Moving the current major
 
 A non-breaking change reaches callers only when the current major tag moves to include it. Once the change's pull request merges, run the script from any branch or worktree of this repository:
