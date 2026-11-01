@@ -76,7 +76,7 @@ main() {
   if [[ "$mode" == move ]]; then
     lease_id=$(find_remote_ref "$remote_tags" "refs/tags/$tag_name")
     if [[ "$base_id" == "$main_id" ]]; then
-      echo "$tag_name already points to $REMOTE/main ($main_id); nothing to move."
+      echo "$tag_name already points to $(git rev-parse --short "$main_id") on $REMOTE; nothing to move."
       exit 0
     fi
   fi
@@ -93,11 +93,14 @@ main() {
   echo "Commits on $REMOTE/main since v$current:"
   git log --oneline "$base_id..$main_id"
   echo
+  local base_short main_short
+  base_short=$(git rev-parse --short "$base_id")
+  main_short=$(git rev-parse --short "$main_id")
+  echo "Confirm only if every commit above belongs in $tag_name and $CHANGELOG_PATH lists it."
   if [[ "$mode" == move ]]; then
-    printf 'Move %s to %s? Check that each commit belongs in %s and that %s lists it. [y/N] ' \
-      "$tag_name" "$main_id" "$tag_name" "$CHANGELOG_PATH"
+    printf 'Move %s from %s to %s, locally and on %s? [y/N] ' "$tag_name" "$base_short" "$main_short" "$REMOTE"
   else
-    printf 'Create %s at %s? Check that %s lists the new major. [y/N] ' "$tag_name" "$main_id" "$CHANGELOG_PATH"
+    printf 'Create %s at %s, locally and on %s? [y/N] ' "$tag_name" "$main_short" "$REMOTE"
   fi
   local answer
   read -r answer || answer=""
@@ -105,10 +108,10 @@ main() {
     die "Declined; no tag changed"
   fi
 
-  # Create the signed tag and pin its object
+  # Create the signed tag and pin its object; the summary at the end replaces git's own report of the update
   local -a force=()
   [[ "$mode" == move ]] && force=(--force)
-  git tag ${force[@]+"${force[@]}"} --sign --message "$tag_name" "$tag_name" "$main_id" ||
+  git tag ${force[@]+"${force[@]}"} --sign --message "$tag_name" "$tag_name" "$main_id" >/dev/null ||
     die "Could not create the signed tag $tag_name"
   local tag_id
   tag_id=$(git rev-parse --verify --quiet "refs/tags/$tag_name") || die "Could not resolve the new tag $tag_name"
@@ -135,7 +138,11 @@ main() {
       "expected $tag_id, peeling to $main_id" >&2
     exit 1
   fi
-  echo "$tag_name on $REMOTE now points to $main_id."
+  if [[ "$mode" == move ]]; then
+    echo "$tag_name now points to $main_short, locally and on $REMOTE (was $base_short)."
+  else
+    echo "$tag_name now points to $main_short, locally and on $REMOTE."
+  fi
 }
 
 # region | Helper functions

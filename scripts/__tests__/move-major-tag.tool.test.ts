@@ -43,12 +43,18 @@ describe('move-major-tag.sh', () => {
 
   it('when the kit targets the current major, moves the signed tag to the head of main', () => {
     const repos = createRepos({ kitMajor: 1 });
+    const previous = git(repos.remote, ['rev-parse', '--short', 'refs/tags/v1^0']);
 
     const result = runScript(repos.clone, 'y\n');
 
     expect(result.status).toBe(0);
     expect(readRemotePeel(repos.remote, 'v1')).toBe(readMainId(repos.remote));
     expect(git(repos.remote, ['cat-file', 'tag', 'v1'])).toContain('-----BEGIN SSH SIGNATURE-----');
+    const main = git(repos.remote, ['rev-parse', '--short', 'refs/heads/main']);
+    expect(result.stdout).toContain('Confirm only if every commit above belongs in v1 and CHANGELOG.md lists it.\n');
+    expect(result.stdout).toContain(`Move v1 from ${previous} to ${main}, locally and on origin? [y/N] `);
+    expect(result.stdout).toContain(`v1 now points to ${main}, locally and on origin (was ${previous}).\n`);
+    expect(result.stdout + result.stderr).not.toContain('Updated tag');
   });
 
   it('when the kit targets the next major, creates that tag and leaves the current one unchanged', () => {
@@ -60,6 +66,9 @@ describe('move-major-tag.sh', () => {
     expect(result.status).toBe(0);
     expect(readRemotePeel(repos.remote, 'v2')).toBe(readMainId(repos.remote));
     expect(git(repos.remote, ['rev-parse', 'refs/tags/v1'])).toBe(currentTagId);
+    const main = git(repos.remote, ['rev-parse', '--short', 'refs/heads/main']);
+    expect(result.stdout).toContain(`Create v2 at ${main}, locally and on origin? [y/N] `);
+    expect(result.stdout).toContain(`v2 now points to ${main}, locally and on origin.\n`);
   });
 
   it('when the tag already points to main, exits 0 without prompting', () => {
