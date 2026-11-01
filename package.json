@@ -28,7 +28,7 @@
     "readyup": "0.44.0",
     "typescript": "6.0.3",
     "v11y-check": "0.19.9",
-    "vitest": "4.1.12"
+    "vitest": "5.0.5"
   },
   "packageManager": "pnpm@12.16.1",
   "engines": {
