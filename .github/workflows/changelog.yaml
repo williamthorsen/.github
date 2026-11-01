@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Changelog
+
+# Runs on label changes too, so that adding or removing the skip label re-decides the check.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changelog:
+    name: Changelog entry
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The SHAs reach the script through the environment, never through interpolation into the script.
+      - name: Check that a reusable-workflow change updates the changelog
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: scripts/check-changelog.sh "$BASE_SHA" "$HEAD_SHA"
