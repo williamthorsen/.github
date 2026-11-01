@@ -8,7 +8,5 @@ export default defineConfig({
     '@types/node': 'minor',
     // Hold typescript at v6 until v7 supports type-aware linting.
     typescript: 'minor',
-    // Hold vitest at v4 until nmr supports v5 (williamthorsen/node-monorepo-tools#1098).
-    vitest: 'minor',
   },
 });
