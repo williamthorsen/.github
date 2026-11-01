@@ -191,7 +191,7 @@ On a GitHub-hosted runner, the workflow restores the pnpm store before `pnpm ins
 
 #### Prettier cache
 
-The workflow restores `node_modules/.cache/prettier/nmr-fmt/` before the check command and saves it afterward, so `nmr fmt:check` rechecks only the files that changed since an earlier run. It restores the most recent cache for the runner's OS, preferring one from the same lockfile, and saves only when the checks changed the cache, including after a failed check.
+The workflow restores `node_modules/.cache/prettier/nmr-fmt/` before the check command and saves it afterward, so `nmr fmt:check` rechecks only the files that changed since an earlier run. It restores a cache saved earlier in the same workflow run if one exists, and otherwise the most recent cache for the runner's OS, preferring one from the same lockfile. It saves only when the checks changed the cache, including after a failed check.
 
 The cache takes effect with an nmr that includes [williamthorsen/node-monorepo-tools#972](https://github.com/williamthorsen/node-monorepo-tools/issues/972); with an earlier nmr, or a check command that does not run `nmr-fmt`, nothing is saved. To run the check uncached, prefix the variable in the check command, as in `check-command: 'NMR_NO_CACHE=1 nmr ci'`; a caller's `env` does not reach a reusable workflow.
 
